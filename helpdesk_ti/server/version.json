@@ -1,0 +1,8 @@
+{
+  "latestVersion": "1.0.0",
+  "latestBuildNumber": "2002",
+  "downloadUrl": "http://192.168.1.100:8080/app-release.apk",
+  "releaseNotes": "- Salvamento de credenciais de login\n- Tela Sobre com informações do app\n- Verificação de atualização\n- Melhorias de performance",
+  "forceUpdate": false,
+  "minimumVersion": "1.0.0"
+}

@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Função auxiliar para verificar autenticação
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Regras para arquivos de manutenção
+    match /manutencao/{chamadoId}/{allPaths=**} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read, write: if isAuthenticated();
+    }
+
+    // Regras para arquivos de TI (se existirem)
+    match /ti/{chamadoId}/{allPaths=**} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read, write: if isAuthenticated();
+    }
+
+    // Regras para avatares de usuários
+    match /users/{userId}/avatar {
+      allow read: if true; // Avatares públicos
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Bloquear tudo que não foi especificado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

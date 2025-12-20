@@ -1,0 +1,804 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'navigation_service.dart';
+import 'package:helpdesk_ti/firebase_options.dart';
+
+/// Serviço de Notificações Push usando Firebase Cloud Messaging
+/// SOLUÇÃO GRATUITA: Notificações via TÓPICOS FCM (sem Cloud Functions, sem HTTP API)
+///
+/// **MELHORIAS v2.0:**
+/// - ✅ Navegação funcional com NavigationService
+/// - ✅ Feedback visual em foreground (overlay animado)
+/// - ✅ Auto-atualização de token completa
+/// - ✅ Background handler funcional
+/// - ✅ Prevenção de duplicação
+/// - ✅ Badges com contadores
+/// - ✅ Categorização por tipo (cores/ícones)
+class NotificationService {
+  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
+  String? _fcmToken;
+  String? _currentUserId; // Armazenar userId para auto-atualização de token
+  final Set<String> _processedNotificationIds = {}; // Prevenir duplicação
+
+  String? get fcmToken => _fcmToken;
+
+  /// Inicializar o serviço de notificações
+  Future<void> initialize() async {
+    try {
+      // Solicitar permissões (iOS)
+      NotificationSettings settings = await _messaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        return;
+      }
+
+      // Na web, não deletamos o token (causa erro)
+      if (!kIsWeb) {
+        // NOVO: Forçar refresh do token para garantir que seja válido
+        // Isso resolve problemas de tokens expirados/inválidos
+        await _messaging.deleteToken();
+        print('🔄 Token antigo deletado, gerando novo...');
+      }
+
+      // Obter novo token FCM (sempre válido)
+      try {
+        _fcmToken = await _messaging.getToken(
+          vapidKey: kIsWeb
+              ? 'BLPInQvHO7wZNJxgjy-qT5JXtJnPxZVuLmGMzuKmH6QIsMNCIkKIz8R4YQpY1dIqjzM3mXVxyA9svxj3RmWQFho'
+              : null,
+        );
+        if (_fcmToken != null) {
+          print('✅ Token FCM gerado: ${_fcmToken?.substring(0, 20)}...');
+        } else {
+          print(
+            '⚠️ Token FCM é null (pode ser normal na web sem VAPID key configurada)',
+          );
+        }
+      } catch (e) {
+        print('⚠️ Não foi possível obter token FCM: $e');
+        // Na web, se falhar, continuar sem notificações push
+        if (kIsWeb) {
+          print('📱 Continuando sem notificações push na web');
+          return;
+        }
+      }
+
+      // Inicializar notificações locais (apenas em plataformas móveis)
+      if (!kIsWeb) {
+        await _initializeLocalNotifications();
+      }
+
+      // Configurar handlers de mensagens
+      _setupMessageHandlers();
+
+      // Atualizar token quando mudar (MELHORADO)
+      _messaging.onTokenRefresh.listen((newToken) async {
+        _fcmToken = newToken;
+        print(
+          '🔄 Token FCM atualizado automaticamente: ${newToken.substring(0, 20)}...',
+        );
+
+        // Auto-atualizar no Firestore se temos userId
+        if (_currentUserId != null) {
+          await _updateUserToken(newToken, _currentUserId!);
+        }
+      });
+    } catch (e) {
+      print('❌ Erro ao inicializar notificações: $e');
+    }
+  }
+
+  /// Inicializar notificações locais com configurações otimizadas para Xiaomi
+  Future<void> _initializeLocalNotifications() async {
+    // Configurações Android com alta prioridade para Xiaomi
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _localNotifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (details) {
+        // Aqui você pode navegar para uma tela específica
+      },
+    );
+
+    // Criar/Atualizar canal de notificação com ALTA PRIORIDADE para Xiaomi
+    // IMPORTANTE: Usar MESMO ID do canal antigo para atualizar as configurações
+    const androidChannel = AndroidNotificationChannel(
+      'helpdesk_channel', // MESMO ID do canal original (não criar novo!)
+      'HelpDesk Notificações', // Nome original
+      description: 'Notificações de chamados e solicitações',
+      importance: Importance.max, // MÁXIMA prioridade (upgrade!)
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(androidChannel);
+
+    print('✅ Canal de notificação ATUALIZADO com alta prioridade');
+    print(
+      '📢 Nome do canal: "HelpDesk Notificações" (mesmo que você vê nas configurações)',
+    );
+  }
+
+  /// Configurar handlers para diferentes estados de mensagens
+  void _setupMessageHandlers() {
+    // Mensagem recebida quando app está em foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _handleForegroundMessage(message);
+    });
+
+    // Mensagem clicada quando app estava em background
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _handleMessageNavigation(message);
+    });
+
+    // Verificar se o app foi aberto por uma notificação
+    _messaging.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null) {
+        _handleMessageNavigation(message);
+      }
+    });
+  }
+
+  /// Manipular mensagem recebida em foreground (MELHORADO)
+  void _handleForegroundMessage(RemoteMessage message) {
+    final notification = message.notification;
+    final data = message.data;
+
+    if (notification != null) {
+      // Mostrar overlay visual com animação
+      _showForegroundOverlay(
+        title: notification.title ?? 'Nova Notificação',
+        body: notification.body ?? '',
+        data: data,
+      );
+
+      // Também mostrar notificação local para persistência
+      _showLocalNotification(
+        title: notification.title ?? 'Nova Notificação',
+        body: notification.body ?? '',
+        data: Map<String, String>.from(data),
+      );
+    }
+  }
+
+  /// Mostrar overlay visual quando app está em foreground
+  void _showForegroundOverlay({
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) {
+    final context = NavigationService.currentContext;
+    if (context == null) return;
+
+    // Determinar cor e ícone baseado no tipo
+    Color backgroundColor = Colors.blue;
+    IconData icon = Icons.notifications;
+
+    if (data != null && data.containsKey('tipo')) {
+      switch (data['tipo']) {
+        case 'novo_chamado':
+          backgroundColor = Colors.orange;
+          icon = Icons.add_alert;
+          break;
+        case 'chamado_atualizado':
+          backgroundColor = Colors.blue;
+          icon = Icons.update;
+          break;
+        case 'solicitacao_pendente':
+          backgroundColor = Colors.purple;
+          icon = Icons.approval;
+          break;
+        case 'solicitacao_aprovada':
+          backgroundColor = Colors.green;
+          icon = Icons.check_circle;
+          break;
+      }
+    }
+
+    // Mostrar SnackBar com ação
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    body,
+                    style: const TextStyle(fontSize: 12),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'VER',
+          textColor: Colors.white,
+          onPressed: () =>
+              _handleMessageNavigation(RemoteMessage(data: data ?? {})),
+        ),
+      ),
+    );
+  }
+
+  /// Manipular navegação baseada na mensagem (IMPLEMENTADO)
+  void _handleMessageNavigation(RemoteMessage message) {
+    final data = message.data;
+
+    // Navegação baseada no tipo de notificação
+    if (data.containsKey('tipo')) {
+      switch (data['tipo']) {
+        case 'novo_chamado':
+          NavigationService.navigateToFilaTecnica();
+          print('🧭 Navegando para Fila Técnica');
+          break;
+
+        case 'chamado_atualizado':
+          if (data.containsKey('chamadoId')) {
+            NavigationService.navigateToChamadoDetails(data['chamadoId']);
+            print('🧭 Navegando para Chamado: ${data['chamadoId']}');
+          } else {
+            NavigationService.navigateToHome();
+          }
+          break;
+
+        case 'solicitacao_pendente':
+          NavigationService.navigateToAprovarSolicitacoes();
+          print('🧭 Navegando para Aprovar Solicitações');
+          break;
+
+        case 'solicitacao_aprovada':
+        case 'solicitacao_reprovada':
+          NavigationService.navigateToHistoricoSolicitacoes();
+          print('🧭 Navegando para Histórico de Solicitações');
+          break;
+
+        default:
+          NavigationService.navigateToHome();
+          print('🧭 Navegando para Home (tipo desconhecido: ${data['tipo']})');
+      }
+    } else {
+      // Se não tem tipo, vai para home
+      NavigationService.navigateToHome();
+      print('🧭 Navegando para Home (sem tipo especificado)');
+    }
+  }
+
+  /// Iniciar listener de notificações em tempo real (MELHORADO - COM PREVENÇÃO DE DUPLICAÇÃO)
+  /// Monitora a coleção 'notifications' e dispara notificações locais
+  void startNotificationListener(String userId) {
+    print('🎧 Listener de notificações INICIADO para userId: $userId');
+
+    // Limpar IDs processados ao iniciar
+    _processedNotificationIds.clear();
+
+    // Primeiro, buscar notificações não lidas existentes (quando app abre)
+    _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .where('read', isEqualTo: false)
+        .orderBy('timestamp', descending: true)
+        .limit(10) // Limitar a 10 mais recentes
+        .get()
+        .then((snapshot) {
+          if (snapshot.docs.isNotEmpty) {
+            print(
+              '📬 Encontradas ${snapshot.docs.length} notificações não lidas ao abrir app',
+            );
+            for (var doc in snapshot.docs) {
+              final docId = doc.id;
+
+              // Prevenir duplicação
+              if (_processedNotificationIds.contains(docId)) {
+                print('⏭️ Notificação $docId já processada, pulando...');
+                continue;
+              }
+
+              final data = doc.data();
+              print('   📩 Mostrando notificação: ${data['title']}');
+              _showLocalNotification(
+                title: data['title'] as String,
+                body: data['body'] as String,
+                data: Map<String, String>.from(data['data'] ?? {}),
+              );
+
+              // Marcar como processada
+              _processedNotificationIds.add(docId);
+
+              // Marcar como lida no Firestore
+              doc.reference.update({'read': true});
+            }
+          } else {
+            print('✅ Nenhuma notificação pendente ao abrir app');
+          }
+        })
+        .catchError((error) {
+          print('❌ Erro ao buscar notificações antigas: $error');
+        });
+
+    // Depois, iniciar listener para novas notificações em tempo real
+    _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .where('read', isEqualTo: false)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            for (var change in snapshot.docChanges) {
+              if (change.type == DocumentChangeType.added) {
+                final docId = change.doc.id;
+
+                // Prevenir duplicação
+                if (_processedNotificationIds.contains(docId)) {
+                  print('⏭️ Notificação $docId já processada, pulando...');
+                  continue;
+                }
+
+                final data = change.doc.data();
+                if (data != null) {
+                  print('🔔 Nova notificação: ${data['title']}');
+                  _showLocalNotification(
+                    title: data['title'] as String,
+                    body: data['body'] as String,
+                    data: Map<String, String>.from(data['data'] ?? {}),
+                  );
+
+                  // Marcar como processada
+                  _processedNotificationIds.add(docId);
+
+                  // Marcar como lida
+                  change.doc.reference.update({'read': true});
+                }
+              }
+            }
+          },
+          onError: (error) {
+            print('❌ Erro no listener de notificações: $error');
+          },
+        );
+  }
+
+  /// Disparar notificação local com configurações otimizadas para Xiaomi
+  Future<void> _showLocalNotification({
+    required String title,
+    required String body,
+    Map<String, String>? data,
+  }) async {
+    try {
+      // Usar o canal ATUALIZADO com alta prioridade
+      final androidDetails = AndroidNotificationDetails(
+        'helpdesk_channel', // MESMO ID do canal criado/atualizado
+        'HelpDesk Notificações', // Nome original
+        channelDescription: 'Notificações de chamados e solicitações',
+        importance:
+            Importance.max, // MÁXIMA prioridade (necessário para Xiaomi)
+        priority: Priority.high,
+        showWhen: true,
+        enableVibration: true, // Vibração para chamar atenção
+        playSound: true, // Som para dispositivos em modo silencioso
+        ticker: 'Novo Chamado', // Texto na barra de status
+        fullScreenIntent: false, // Não mostrar em tela cheia
+        autoCancel: true, // Auto remover quando clicado
+        ongoing: false, // Permitir deslizar para remover
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: title,
+          summaryText: 'HelpDesk TI',
+        ),
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      final notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      print('🔔 DEBUG: Preparando notificação...');
+      print('   Canal: helpdesk_channel');
+      print('   Título: $title');
+      print('   Corpo: $body');
+
+      await _localNotifications.show(
+        notificationId,
+        title,
+        body,
+        notificationDetails,
+        payload: data?.toString(),
+      );
+
+      print(
+        '✅ DEBUG: Notificação local disparada - ID: $notificationId, Título: $title',
+      );
+    } catch (e) {
+      print('❌ Erro ao disparar notificação local: $e');
+    }
+  }
+
+  /// Salvar token FCM do usuário no Firestore (MELHORADO)
+  Future<void> saveUserToken(String userId) async {
+    // Armazenar userId para auto-atualização
+    _currentUserId = userId;
+
+    if (_fcmToken == null) {
+      print('⚠️ Token FCM é null, tentando gerar novo...');
+      // Tentar gerar um novo token
+      await _messaging.deleteToken();
+      _fcmToken = await _messaging.getToken();
+
+      if (_fcmToken == null) {
+        print('❌ Não foi possível gerar token FCM');
+        return;
+      }
+      print('✅ Novo token gerado: ${_fcmToken!.substring(0, 20)}...');
+    }
+
+    try {
+      // Verificar se o token mudou antes de salvar
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      final oldToken = userDoc.data()?['fcmToken'] as String?;
+
+      if (oldToken == _fcmToken) {
+        print('ℹ️ Token FCM não mudou, sem necessidade de atualizar');
+        startNotificationListener(userId);
+        return;
+      }
+
+      print(
+        '💾 Salvando token FCM: ${_fcmToken!.substring(0, 20)}... para userId: $userId',
+      );
+
+      // Usar set com merge:true para criar o campo se não existir
+      await _firestore.collection('users').doc(userId).set({
+        'fcmToken': _fcmToken,
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      print('✅ Token FCM salvo com sucesso no Firestore!');
+      startNotificationListener(userId);
+    } catch (e) {
+      print('❌ Erro ao salvar token FCM: $e');
+    }
+  }
+
+  /// Atualizar token do usuário (IMPLEMENTADO)
+  Future<void> _updateUserToken(String newToken, String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'fcmToken': newToken,
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ Token FCM atualizado no Firestore para userId: $userId');
+    } catch (e) {
+      print('❌ Erro ao atualizar token FCM: $e');
+    }
+  }
+
+  /// Remover token FCM do usuário ao fazer logout
+  Future<void> removeUserToken(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'fcmToken': FieldValue.delete(),
+        'fcmTokenUpdatedAt': FieldValue.delete(),
+      });
+    } catch (e) {
+      print('❌ Erro ao remover token FCM: $e');
+    }
+  }
+
+  /// Inscrever em tópico (útil para notificações em grupo)
+  Future<void> subscribeToTopic(String topic) async {
+    try {
+      await _messaging.subscribeToTopic(topic);
+    } catch (e) {
+      print('❌ Erro ao inscrever no tópico $topic: $e');
+    }
+  }
+
+  /// Desinscrever de tópico
+  Future<void> unsubscribeFromTopic(String topic) async {
+    try {
+      await _messaging.unsubscribeFromTopic(topic);
+    } catch (e) {
+      print('❌ Erro ao desinscrever do tópico $topic: $e');
+    }
+  }
+
+  // ========== MÉTODOS DE ENVIO DE NOTIFICAÇÕES (SOLUÇÃO GRATUITA) ==========
+
+  /// Envia notificação para usuários específicos (por role)
+  ///
+  /// [titulo] - Título da notificação
+  /// [corpo] - Corpo da notificação
+  /// [roles] - Lista de roles que devem receber (ex: ['admin', 'ti'])
+  /// [data] - Dados extras para navegação
+  /// [excludeUserId] - ID do usuário a excluir (geralmente quem criou)
+  Future<void> sendNotificationToRoles({
+    required String titulo,
+    required String corpo,
+    required List<String> roles,
+    Map<String, String>? data,
+    String? excludeUserId,
+  }) async {
+    try {
+      final usersQuery = await _firestore
+          .collection('users')
+          .where('role', whereIn: roles)
+          .get();
+
+      print(
+        '🔍 DEBUG: Encontrados ${usersQuery.docs.length} usuários com roles: $roles',
+      );
+
+      if (usersQuery.docs.isEmpty) {
+        print('⚠️ AVISO: Nenhum usuário encontrado com roles: $roles');
+        return;
+      }
+
+      final tokens = <String>[];
+      for (var doc in usersQuery.docs) {
+        final userData = doc.data();
+        final userName = userData['nome'] ?? 'Sem nome';
+        final userRole = userData['role'] ?? 'Sem role';
+
+        if (excludeUserId != null && doc.id == excludeUserId) {
+          print(
+            '⏭️ Ignorando usuário: $userName (userId: ${doc.id}) - é o criador do chamado',
+          );
+          continue;
+        }
+
+        final token = userData['fcmToken'] as String?;
+        if (token != null && token.isNotEmpty) {
+          print(
+            '✅ Token encontrado para: $userName ($userRole) - ${token.substring(0, 20)}...',
+          );
+          tokens.add(token);
+        } else {
+          print('❌ SEM TOKEN: $userName ($userRole, userId: ${doc.id})');
+        }
+      }
+
+      print('🎫 DEBUG: Coletados ${tokens.length} tokens válidos');
+
+      if (tokens.isEmpty) {
+        print('⚠️ AVISO: Nenhum token FCM válido encontrado!');
+        return;
+      }
+
+      await _sendFCMNotification(
+        tokens: tokens,
+        titulo: titulo,
+        corpo: corpo,
+        data: data,
+      );
+    } catch (e, stackTrace) {
+      print('❌ ERRO CRÍTICO em sendNotificationToRoles: $e');
+      print(stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Envia notificação para um usuário específico
+  ///
+  /// [userId] - ID do usuário que deve receber
+  /// [titulo] - Título da notificação
+  /// [corpo] - Corpo da notificação
+  /// [data] - Dados extras para navegação
+  Future<void> sendNotificationToUser({
+    required String userId,
+    required String titulo,
+    required String corpo,
+    Map<String, String>? data,
+  }) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+
+      if (!userDoc.exists) {
+        return;
+      }
+
+      final userData = userDoc.data();
+      final token = userData?['fcmToken'] as String?;
+
+      if (token == null || token.isEmpty) {
+        return;
+      }
+
+      await _sendFCMNotification(
+        tokens: [token],
+        titulo: titulo,
+        corpo: corpo,
+        data: data,
+      );
+    } catch (e) {
+      print('❌ Erro ao enviar notificação para usuário: $e');
+    }
+  }
+
+  /// Envia notificação para múltiplos usuários
+  ///
+  /// [userIds] - Lista de IDs dos usuários
+  /// [titulo] - Título da notificação
+  /// [corpo] - Corpo da notificação
+  /// [data] - Dados extras para navegação
+  /// [excludeUserId] - ID do usuário a excluir
+  Future<void> sendNotificationToUsers({
+    required List<String> userIds,
+    required String titulo,
+    required String corpo,
+    Map<String, String>? data,
+    String? excludeUserId,
+  }) async {
+    try {
+      final filteredIds = excludeUserId != null
+          ? userIds.where((id) => id != excludeUserId).toList()
+          : userIds;
+
+      if (filteredIds.isEmpty) {
+        return;
+      }
+
+      final tokens = <String>[];
+      for (var userId in filteredIds) {
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          final token = userDoc.data()?['fcmToken'] as String?;
+          if (token != null && token.isNotEmpty) {
+            tokens.add(token);
+          }
+        }
+      }
+
+      if (tokens.isEmpty) {
+        return;
+      }
+
+      await _sendFCMNotification(
+        tokens: tokens,
+        titulo: titulo,
+        corpo: corpo,
+        data: data,
+      );
+    } catch (e) {
+      print('❌ Erro ao enviar notificação: $e');
+    }
+  }
+
+  /// Envia notificação via Firebase Cloud Messaging usando dados no Firestore
+  /// Salva notificação no Firestore (Legacy FCM HTTP API foi descontinuada)
+  Future<void> _sendFCMNotification({
+    required List<String> tokens,
+    required String titulo,
+    required String corpo,
+    Map<String, String>? data,
+  }) async {
+    try {
+      for (var token in tokens) {
+        try {
+          final userQuery = await _firestore
+              .collection('users')
+              .where('fcmToken', isEqualTo: token)
+              .limit(1)
+              .get();
+
+          if (userQuery.docs.isNotEmpty) {
+            final userId = userQuery.docs.first.id;
+            final userName = userQuery.docs.first.data()['nome'] as String?;
+
+            await _firestore.collection('notifications').add({
+              'userId': userId,
+              'userName': userName,
+              'title': titulo,
+              'body': corpo,
+              'data': data ?? {},
+              'read': false,
+              'timestamp': FieldValue.serverTimestamp(),
+            });
+            print(
+              '✅ DEBUG: Notificação salva no Firestore para $userName ($userId)',
+            );
+          }
+        } catch (e) {
+          print('❌ Erro ao processar token de notificação: $e');
+        }
+      }
+    } catch (e, stackTrace) {
+      print('❌ EXCEÇÃO em _sendFCMNotification: $e');
+      print(stackTrace);
+      rethrow;
+    }
+  }
+}
+
+/// Handler para mensagens em background MELHORADO (função top-level)
+/// Deve estar fora da classe e ser anotada com @pragma
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  final title = message.notification?.title ?? 'Nova notificação';
+  final body = message.notification?.body ?? '';
+  print('🌙 Notificação em background: $title');
+
+  // Salvar no Firestore para exibir quando app abrir
+  try {
+    final data = message.data;
+    if (data.containsKey('userId')) {
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'userId': data['userId'],
+        'title': title,
+        'body': body,
+        'data': data,
+        'read': false,
+        'timestamp': FieldValue.serverTimestamp(),
+        'receivedInBackground': true,
+      });
+      print('✅ Notificação salva no Firestore para exibição posterior');
+    }
+  } catch (e) {
+    print('❌ Erro ao salvar notificação em background: $e');
+  }
+}
+
+/// Registrar o background handler
+void registerBackgroundHandler() {
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+}

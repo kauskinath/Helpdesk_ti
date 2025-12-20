@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "473860451308",
+    "project_id": "helpdesk-ti-4bbf2",
+    "storage_bucket": "helpdesk-ti-4bbf2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:473860451308:android:ae72f8cd46a86c3e446ec9",
+        "android_client_info": {
+          "package_name": "com.example.helpdesk_ti"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfH9O3AQ2Hs9-SMHDsA1oyL3m0Hp6IKsw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

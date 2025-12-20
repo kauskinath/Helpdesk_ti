@@ -1,0 +1,15 @@
+# ⚠️ NÃO COMMITAR ESTE ARQUIVO NO GIT!
+# Este arquivo contém informações sensíveis de assinatura do app
+
+# Configurações do Keystore
+storePassword=SUA_SENHA_DO_KEYSTORE_AQUI
+keyPassword=SUA_SENHA_DA_KEY_AQUI
+keyAlias=pichau-ti-key
+storeFile=C:/KeystoresPichau/pichau-ti-release-key.jks
+
+# INSTRUÇÕES:
+# 1. Substitua SUA_SENHA_DO_KEYSTORE_AQUI pela senha do keystore
+# 2. Substitua SUA_SENHA_DA_KEY_AQUI pela senha da key
+# 3. Verifique se o caminho do storeFile está correto
+# 4. Salve este arquivo como "key.properties" na pasta android/
+# 5. Certifique-se que key.properties está no .gitignore

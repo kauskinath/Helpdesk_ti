@@ -1,0 +1,350 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================================
+    // FUNÇÕES AUXILIARES
+    // ============================================================
+    
+    // Verifica se usuário está autenticado
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Verifica se é o próprio usuário
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Verifica se é admin ou TI
+    function isAdmin() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'ti'];
+    }
+    
+    // Verifica se é manager
+    function isManager() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager';
+    }
+    
+    // Verifica se é admin de manutenção
+    function isAdminManutencao() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin_manutencao';
+    }
+    
+    // Verifica se é executor
+    function isExecutor() {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'executor';
+    }
+    
+    // ============================================================
+    // COLEÇÃO: users
+    // ============================================================
+    
+    match /users/{userId} {
+      // Todos podem ler seus próprios dados
+      // Admins podem ler todos os usuários (inclusive via snapshots)
+      // Admin Manutenção pode listar usuários (precisa ver executores)
+      allow read, list: if isOwner(userId) || isAdmin() || isAdminManutencao();
+      
+      // Usuário pode atualizar seus próprios dados
+      // Admins podem criar/atualizar qualquer usuário
+      allow create, update: if isOwner(userId) || isAdmin();
+      
+      // Apenas admins podem deletar
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================
+    // COLEÇÃO: tickets (chamados ativos)
+    // ============================================================
+    
+    match /tickets/{ticketId} {
+      // Leitura individual (get):
+      // - Admin/TI: Todos os chamados
+      // - Manager: Todos os chamados (precisa ver chamados com orçamento)
+      // - User: Apenas seus próprios chamados
+      allow get: if isAdmin() || 
+                    isManager() ||
+                    resource.data.usuarioId == request.auth.uid;
+      
+      // Listagem/Queries (list):
+      // - Admin/TI: Pode listar todos
+      // - Manager: Pode listar todos (precisa filtrar no app)
+      // - User: Pode listar (filtrado no app pelos seus chamados)
+      allow list: if isSignedIn();
+      
+      // Criação:
+      // - Usuários autenticados podem criar chamados
+      // - Deve incluir usuarioId do criador
+      allow create: if isSignedIn() && 
+                       request.resource.data.usuarioId == request.auth.uid &&
+                       request.resource.data.foiArquivado == false;
+      
+      // Atualização:
+      // - Admin/TI: Pode atualizar qualquer chamado
+      // - Manager: Pode atualizar qualquer chamado (aprovação de orçamento)
+      // - User: Pode atualizar apenas seus chamados e campos limitados
+      allow update: if isAdmin() ||
+                       isManager() ||
+                       (resource.data.usuarioId == request.auth.uid && 
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'anexos', 'lastUpdated']));
+      
+      // Deleção: Apenas admins
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================
+    // COLEÇÃO: comentarios
+    // ============================================================
+    
+    match /comentarios/{comentarioId} {
+      // Leitura individual (get):
+      // - Admin/TI/Manager: Todos os comentários
+      // - User: Comentários dos seus chamados
+      allow get: if isAdmin() || 
+                    isManager() ||
+                    get(/databases/$(database)/documents/tickets/$(resource.data.chamadoId)).data.usuarioId == request.auth.uid;
+      
+      // Listagem/Queries (list):
+      // - Usuários autenticados podem listar (filtrado por chamadoId no app)
+      allow list: if isSignedIn();
+      
+      // Criação:
+      // - Usuários autenticados podem comentar
+      // - Deve incluir autorId
+      allow create: if isSignedIn() && 
+                       request.resource.data.autorId == request.auth.uid;
+      
+      // Atualização:
+      // - Autor pode editar nos primeiros 5 minutos
+      // - Deve marcar como editado
+      allow update: if resource.data.autorId == request.auth.uid &&
+                       request.time < resource.data.dataHora + duration.value(5, 'm') &&
+                       request.resource.data.edited == true;
+      
+      // Deleção: Apenas admins
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================
+    // COLEÇÃO: avaliacoes
+    // ============================================================
+    
+    match /avaliacoes/{avaliacaoId} {
+      // Leitura individual (get):
+      // - Admin/TI/Manager: Todas as avaliações
+      // - User: Suas próprias avaliações
+      allow get: if isAdmin() || isManager() || resource.data.usuarioId == request.auth.uid;
+      
+      // Listagem/Queries (list):
+      // - Admin/TI/Manager podem listar todas
+      // - User pode listar (filtrado no app)
+      allow list: if isSignedIn();
+      
+      // Criação:
+      // - Usuário pode avaliar seus próprios chamados fechados
+      allow create: if isSignedIn() && 
+                       request.resource.data.usuarioId == request.auth.uid;
+      
+      // Atualização/Deleção: Bloqueadas
+      // Avaliações não podem ser modificadas após criação
+      allow update, delete: if false;
+    }
+    
+    // ============================================================
+    // COLEÇÃO: templates
+    // ============================================================
+    
+    match /templates/{templateId} {
+      // Leitura: Todos usuários autenticados
+      allow read: if isSignedIn();
+      
+      // Escrita: Apenas admins
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ============================================================
+    // COLEÇÃO: solicitacoes
+    // ============================================================
+    
+    match /solicitacoes/{solicitacaoId} {
+      // Leitura individual:
+      // - Admin: Todas as solicitações
+      // - Manager: Todas as solicitações (para aprovar)
+      // - User: Suas próprias solicitações
+      allow get: if isAdmin() || isManager() || resource.data.usuarioId == request.auth.uid;
+      
+      // Listagem (queries):
+      // - Admin e Manager: Podem listar todas
+      // - User: Pode listar (filtrado por usuarioId na query)
+      allow list: if isSignedIn();
+      
+      // Criação:
+      // - Usuários autenticados podem criar solicitações
+      allow create: if isSignedIn() && 
+                       request.resource.data.usuarioId == request.auth.uid;
+      
+      // Atualização:
+      // - Admin: Pode atualizar qualquer campo
+      // - Manager: Pode aprovar/rejeitar (mudar status)
+      // - User: Pode editar antes da aprovação
+      allow update: if isAdmin() || 
+                       isManager() ||
+                       (resource.data.usuarioId == request.auth.uid && 
+                        resource.data.status == 'Pendente');
+      
+      // Deleção: Apenas admins
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================================
+    // COLEÇÃO: notifications (se implementada)
+    // ============================================================
+    
+    match /notifications/{notificationId} {
+      // Leitura: Apenas destinatário ou admin
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Atualização: Apenas para marcar como lida
+      allow update: if isSignedIn() && 
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+      
+      // Criação: Permitir para qualquer usuário autenticado
+      // (o sistema cria notificações automaticamente)
+      allow create: if isSignedIn();
+      
+      // Deleção: Apenas admins ou o próprio destinatário
+      allow delete: if isSignedIn() && 
+                       (resource.data.userId == request.auth.uid || isAdmin());
+    }
+    
+    // ============================================================
+    // COLEÇÃO: chamados (TI + MANUTENÇÃO)
+    // ============================================================
+    
+    match /chamados/{chamadoId} {
+      // Funções auxiliares para verificar tipo do chamado
+      function isChamadoTI() {
+        return resource.data.tipo == 'TI';
+      }
+      
+      function isChamadoManutencao() {
+        return resource.data.tipo == 'MANUTENCAO';
+      }
+      
+      function isCriador() {
+        return request.auth.uid == resource.data.criadorId;
+      }
+      
+      function isExecutorAtribuido() {
+        return request.auth.uid == resource.data.execucao.executorId;
+      }
+      
+      // === LEITURA ===
+      // Permite leitura individual de documentos
+      allow get: if isSignedIn() && (
+        // Admin TI: Apenas chamados TI
+        (isAdmin() && isChamadoTI()) ||
+        
+        // Admin Manutenção: Apenas chamados MANUTENCAO
+        (isAdminManutencao() && isChamadoManutencao()) ||
+        
+        // Gerente: Apenas chamados MANUTENCAO (para aprovar orçamentos)
+        (isManager() && isChamadoManutencao()) ||
+        
+        // Executor: Apenas chamados MANUTENCAO atribuídos a ele
+        (isExecutor() && isChamadoManutencao() && isExecutorAtribuido()) ||
+        
+        // Usuário comum: Apenas seus próprios chamados (TI ou MANUTENCAO)
+        isCriador()
+      );
+      
+      // Permite listagem (queries/snapshots)
+      allow list: if isSignedIn() && (
+        // Admin TI: Pode listar chamados TI
+        isAdmin() ||
+        
+        // Admin Manutenção: Pode listar chamados MANUTENCAO
+        isAdminManutencao() ||
+        
+        // Gerente: Pode listar chamados MANUTENCAO
+        isManager() ||
+        
+        // Executor: Pode listar chamados MANUTENCAO
+        isExecutor() ||
+        
+        // Usuário comum: Pode listar seus próprios chamados
+        true  // Será filtrado pela query (where criadorId == uid)
+      );
+      
+      // === CRIAÇÃO ===
+      allow create: if isSignedIn() && (
+        // Todos usuários autenticados podem criar chamados
+        // Deve incluir criadorId e tipo correto
+        request.resource.data.criadorId == request.auth.uid &&
+        request.resource.data.tipo in ['TI', 'MANUTENCAO']
+      );
+      
+      // === ATUALIZAÇÃO ===
+      allow update: if isSignedIn() && (
+        // Admin TI: Pode atualizar chamados TI
+        (isAdmin() && isChamadoTI()) ||
+        
+        // Admin Manutenção: Pode atualizar chamados MANUTENCAO
+        (isAdminManutencao() && isChamadoManutencao()) ||
+        
+        // Gerente: Pode aprovar/rejeitar orçamentos de chamados MANUTENCAO
+        (isManager() && isChamadoManutencao() && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aprovacaoGerente', 'status'])) ||
+        
+        // Executor: Pode atualizar chamados atribuídos a ele
+        (isExecutor() && isChamadoManutencao() && isExecutorAtribuido() &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['execucao', 'status', 'recusa', 'dataFinalizacao'])) ||
+        
+        // Criador: Pode atualizar descrição, orçamento e fotos se for o criador
+        // Permite atualizar quando status for 'aberto' OU quando estiver apenas atualizando esses campos
+        (isCriador() && (
+          resource.data.status == 'aberto' ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotosUrls']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orcamento']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'fotosUrls']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'orcamento']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'orcamento', 'fotosUrls'])
+        ))
+      );
+      
+      // === DELEÇÃO ===
+      allow delete: if (isAdmin() && isChamadoTI()) || 
+                       (isAdminManutencao() && isChamadoManutencao());
+    }
+    
+    // ============================================================
+    // COLEÇÃO: counters
+    // ============================================================
+    
+    match /counters/{counterId} {
+      // Leitura: Qualquer usuário autenticado pode ler contadores
+      allow read: if isSignedIn();
+      
+      // Escrita: Qualquer usuário autenticado pode atualizar contadores
+      // (necessário para gerar números sequenciais de chamados)
+      allow write: if isSignedIn();
+    }
+    
+    // ============================================================
+    // BLOQUEIO GERAL
+    // ============================================================
+    
+    // Qualquer outra coleção: Bloqueada
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
