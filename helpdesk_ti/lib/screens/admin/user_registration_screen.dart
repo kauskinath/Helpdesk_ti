@@ -95,8 +95,11 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
 
   /// Valida se o nome/sobrenome contém apenas letras e espaços
   bool _isValidName(String name) {
-    // Permite letras (incluindo acentuadas), espaços e hífens
-    final nameRegex = RegExp(r'^[a-zA-ZÀ-ÿ\s\-]+$');
+    // Permite letras (a-z, A-Z, incluindo Y), acentuadas, espaços e hífens
+    // Usando lista explícita para garantir compatibilidade
+    final nameRegex = RegExp(
+      r"^[a-zA-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ\s\-']+$",
+    );
     return nameRegex.hasMatch(name);
   }
 

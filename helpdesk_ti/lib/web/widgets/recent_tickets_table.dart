@@ -6,6 +6,7 @@ import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
 import '../../widgets/chamado/status_badge.dart';
 import 'chamado_detail_dialog.dart';
+import 'chamado_edit_dialog.dart';
 
 /// Tabela de chamados recentes para dashboard web
 class RecentTicketsTable extends StatelessWidget {
@@ -67,6 +68,13 @@ class RecentTicketsTable extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: DataTable(
+            border: TableBorder.all(
+              color: isDarkMode
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.grey.withValues(alpha: 0.15),
+              width: 0.5,
+              borderRadius: BorderRadius.circular(8),
+            ),
             headingRowColor: WidgetStateProperty.all(headerColor),
             columns: [
               DataColumn(
@@ -257,7 +265,11 @@ class RecentTicketsTable extends StatelessWidget {
                                   : AppColors.accent,
                             ),
                             onPressed: () {
-                              // TODO: Editar chamado
+                              showDialog(
+                                context: context,
+                                builder: (context) =>
+                                    ChamadoEditDialog(chamado: chamado),
+                              );
                             },
                             tooltip: 'Editar',
                           ),

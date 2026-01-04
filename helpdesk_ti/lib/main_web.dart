@@ -93,12 +93,30 @@ class WebAuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
 
-    // Verificar se está logado E é admin
-    if (authService.isLoggedIn && authService.isAdmin) {
+    // Se está logado mas role ainda não carregou, mostrar loading
+    if (authService.isLoggedIn && authService.userRole == null) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Carregando...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Verificar se está logado (qualquer role pode acessar a web agora)
+    if (authService.isLoggedIn) {
+      // TODO: Futuramente, rotear para telas específicas baseado na role
+      // Por enquanto, todos usam o WebLayout (admin tem acesso completo)
       return const WebLayout();
     }
 
-    // Se não está logado OU não é admin, mostrar login
+    // Se não está logado, mostrar login
     return const WebLoginScreen();
   }
 }

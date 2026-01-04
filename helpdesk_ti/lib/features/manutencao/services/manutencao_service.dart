@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'dart:io';
 import '../models/chamado_manutencao_model.dart';
 import '../models/manutencao_enums.dart';
 import 'package:helpdesk_ti/core/services/notification_service.dart';
+import 'package:helpdesk_ti/core/utils/retry_helper.dart';
 
 /// Serviço para gerenciar chamados de manutenção
 class ManutencaoService {
@@ -14,46 +16,83 @@ class ManutencaoService {
   // Collection principal
   static const String _chamadosCollection = 'chamados';
 
+  // ========== LOGGING CONDICIONAL ==========
+  void _log(String message) {
+    if (kDebugMode) print(message);
+  }
+
   // ========== NUMERAÇÃO AUTOMÁTICA ==========
 
   /// Gera o próximo número sequencial para chamados de manutenção
+  /// Com retry automático para lidar com conflitos de transação
   Future<int> gerarProximoNumero() async {
     try {
-      print('🔢 Iniciando geração de número...');
+      _log('🔢 Iniciando geração de número...');
       final contadorDoc = _firestore.collection('counters').doc('manutencao');
 
-      // Usar transação para garantir unicidade
-      final novoNumero = await _firestore.runTransaction<int>((
-        transaction,
-      ) async {
-        final snapshot = await transaction.get(contadorDoc);
-        print('📊 Contador existe? ${snapshot.exists}');
+      // Usar transação com retry para garantir unicidade
+      final novoNumero = await RetryHelper.withTransactionRetry<int>(
+        transaction: () => _firestore.runTransaction<int>((transaction) async {
+          final snapshot = await transaction.get(contadorDoc);
+          _log('📊 Contador existe? ${snapshot.exists}');
 
-        int numero;
-        if (!snapshot.exists) {
-          // Criar contador se não existir
-          numero = 1;
-          print('✨ Criando contador inicial com número: $numero');
-          transaction.set(contadorDoc, {'ultimoNumero': numero});
-        } else {
-          // Incrementar contador existente
-          final ultimoNumero = snapshot.data()?['ultimoNumero'] ?? 0;
-          numero = ultimoNumero + 1;
-          print('➕ Incrementando de $ultimoNumero para $numero');
-          transaction.update(contadorDoc, {'ultimoNumero': numero});
-        }
+          int numero;
+          if (!snapshot.exists) {
+            // Criar contador se não existir
+            numero = 1;
+            _log('✨ Criando contador inicial com número: $numero');
+            transaction.set(contadorDoc, {'ultimoNumero': numero});
+          } else {
+            // Incrementar contador existente
+            final ultimoNumero = snapshot.data()?['ultimoNumero'] ?? 0;
+            numero = ultimoNumero + 1;
+            _log('➕ Incrementando de $ultimoNumero para $numero');
+            transaction.update(contadorDoc, {'ultimoNumero': numero});
+          }
 
-        return numero;
-      });
+          return numero;
+        }),
+        maxAttempts: 3,
+      );
 
-      print('✅ Número gerado com sucesso: $novoNumero');
+      _log('✅ Número gerado com sucesso: $novoNumero');
       return novoNumero;
     } catch (e) {
-      print('❌ Erro ao gerar número: $e');
-      // Fallback: usar timestamp
-      final fallback = DateTime.now().millisecondsSinceEpoch % 10000;
-      print('⚠️ Usando fallback: $fallback');
-      return fallback;
+      _log('❌ Erro ao gerar número via transação: $e');
+      // Fallback: buscar o maior número existente na coleção e incrementar
+      return await _gerarNumeroFallback();
+    }
+  }
+
+  /// Fallback para gerar número quando a transação falha
+  /// Busca o maior número existente na coleção chamados e incrementa
+  Future<int> _gerarNumeroFallback() async {
+    try {
+      _log('⚠️ Usando fallback para gerar número...');
+
+      // Buscar chamado com maior número
+      final querySnapshot = await _firestore
+          .collection(_chamadosCollection)
+          .orderBy('numero', descending: true)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        _log('📊 Nenhum chamado existente, iniciando em 1');
+        return 1;
+      }
+
+      final maiorNumero =
+          querySnapshot.docs.first.data()['numero'] as int? ?? 0;
+      final novoNumero = maiorNumero + 1;
+      _log('📊 Maior número existente: $maiorNumero, novo número: $novoNumero');
+
+      return novoNumero;
+    } catch (e) {
+      _log('❌ Erro no fallback: $e');
+      // Último recurso: retornar número baseado em timestamp único
+      // Isso só acontece se tanto a transação quanto a query falharem
+      return DateTime.now().millisecondsSinceEpoch ~/ 1000;
     }
   }
 
@@ -72,13 +111,33 @@ class ManutencaoService {
     try {
       // Gerar número sequencial
       final numero = await gerarProximoNumero();
-      print('🎫 Chamado será criado com número: $numero');
+      _log('🎫 Chamado será criado com número: $numero');
 
       // Determinar se precisa validação
       // Admin Manutenção criando sem orçamento pode pular validação
+      // Executor criando chamado SEM orçamento também não precisa validação (auto-atribui)
       final bool precisaValidacao =
-          !(criadorTipo == TipoCriadorChamado.adminManutencao &&
+          !((criadorTipo == TipoCriadorChamado.adminManutencao ||
+                  (criadorTipo == TipoCriadorChamado.executor &&
+                      autoAtribuicao)) &&
               orcamento == null);
+
+      // Se executor está criando sem orçamento, já pré-atribuir a ele mesmo
+      Execucao? execucaoInicial;
+      StatusChamadoManutencao statusInicial = StatusChamadoManutencao.aberto;
+
+      if (criadorTipo == TipoCriadorChamado.executor &&
+          autoAtribuicao &&
+          orcamento == null) {
+        // Executor criando chamado sem orçamento: auto-atribuir
+        execucaoInicial = Execucao(
+          executorId: criadorId,
+          executorNome: criadorNome,
+          dataAtribuicao: DateTime.now(),
+        );
+        statusInicial = StatusChamadoManutencao.atribuidoExecutor;
+        _log('🔧 Auto-atribuindo chamado ao executor: $criadorNome');
+      }
 
       final chamado = ChamadoManutencao(
         id: '', // Será gerado pelo Firestore
@@ -88,25 +147,26 @@ class ManutencaoService {
         criadorId: criadorId,
         criadorNome: criadorNome,
         criadorTipo: criadorTipo,
-        status: StatusChamadoManutencao.aberto,
+        status: statusInicial,
         dataAbertura: DateTime.now(),
         orcamento: orcamento,
         precisaValidacao: precisaValidacao,
         autoAtribuicao: autoAtribuicao,
+        execucao: execucaoInicial,
       );
 
       final docRef = await _firestore
           .collection(_chamadosCollection)
           .add(chamado.toMap());
 
-      print('✅ Chamado de manutenção criado: ${docRef.id}');
+      _log('✅ Chamado de manutenção criado: ${docRef.id}');
 
       // Notificar admin de manutenção sobre novo chamado
       try {
-        print('🔔 INICIANDO envio de notificação para admin_manutencao...');
-        print('   - Chamado ID: ${docRef.id}');
-        print('   - Título: $titulo');
-        print('   - Criador: $criadorNome');
+        _log('🔔 INICIANDO envio de notificação para admin_manutencao...');
+        _log('   - Chamado ID: ${docRef.id}');
+        _log('   - Título: $titulo');
+        _log('   - Criador: $criadorNome');
 
         await _notificationService.sendNotificationToRoles(
           roles: ['admin_manutencao'],
@@ -118,16 +178,16 @@ class ManutencaoService {
             'acao': 'novo_chamado',
           },
         );
-        print('✅ Notificação enviada para admins de manutenção');
+        _log('✅ Notificação enviada para admins de manutenção');
       } catch (e, stackTrace) {
-        print('⚠️ Erro ao enviar notificação: $e');
-        print('Stack trace: $stackTrace');
+        _log('⚠️ Erro ao enviar notificação: $e');
+        _log('Stack trace: $stackTrace');
         // Não bloquear a criação do chamado por erro de notificação
       }
 
       return docRef.id;
     } catch (e) {
-      print('❌ Erro ao criar chamado de manutenção: $e');
+      _log('❌ Erro ao criar chamado de manutenção: $e');
       rethrow;
     }
   }
@@ -184,12 +244,12 @@ class ManutencaoService {
           data: {'chamadoId': chamadoId, 'tipo': 'MANUTENCAO'},
         );
       } catch (e) {
-        print('⚠️ Erro ao enviar notificação de validação: $e');
+        _log('⚠️ Erro ao enviar notificação de validação: $e');
       }
 
-      print('✅ Chamado validado: $chamadoId');
+      _log('✅ Chamado validado: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao validar chamado: $e');
+      _log('❌ Erro ao validar chamado: $e');
       rethrow;
     }
   }
@@ -245,12 +305,12 @@ class ManutencaoService {
           data: {'chamadoId': chamadoId, 'tipo': 'MANUTENCAO'},
         );
       } catch (e) {
-        print('⚠️ Erro ao enviar notificação de aprovação: $e');
+        _log('⚠️ Erro ao enviar notificação de aprovação: $e');
       }
 
-      print('✅ Orçamento ${aprovado ? 'aprovado' : 'rejeitado'}: $chamadoId');
+      _log('✅ Orçamento ${aprovado ? 'aprovado' : 'rejeitado'}: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao aprovar orçamento: $e');
+      _log('❌ Erro ao aprovar orçamento: $e');
       rethrow;
     }
   }
@@ -263,9 +323,9 @@ class ManutencaoService {
       await _firestore.collection(_chamadosCollection).doc(chamadoId).update({
         'orcamento': orcamento.toMap(),
       });
-      print('✅ Orçamento atualizado: $chamadoId');
+      _log('✅ Orçamento atualizado: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao atualizar orçamento: $e');
+      _log('❌ Erro ao atualizar orçamento: $e');
       rethrow;
     }
   }
@@ -302,9 +362,9 @@ class ManutencaoService {
           .collection(_chamadosCollection)
           .doc(chamadoId)
           .update(updates);
-      print('✅ Status de compra atualizado: $chamadoId');
+      _log('✅ Status de compra atualizado: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao atualizar compra: $e');
+      _log('❌ Erro ao atualizar compra: $e');
       rethrow;
     }
   }
@@ -340,12 +400,12 @@ class ManutencaoService {
           data: {'chamadoId': chamadoId, 'tipo': 'MANUTENCAO'},
         );
       } catch (e) {
-        print('⚠️ Erro ao enviar notificação de atribuição: $e');
+        _log('⚠️ Erro ao enviar notificação de atribuição: $e');
       }
 
-      print('✅ Executor atribuído: $chamadoId → $executorNome');
+      _log('✅ Executor atribuído: $chamadoId → $executorNome');
     } catch (e) {
-      print('❌ Erro ao atribuir executor: $e');
+      _log('❌ Erro ao atribuir executor: $e');
       rethrow;
     }
   }
@@ -389,12 +449,12 @@ class ManutencaoService {
           data: {'chamadoId': chamadoId, 'tipo': 'MANUTENCAO'},
         );
       } catch (e) {
-        print('⚠️ Erro ao enviar notificação de início: $e');
+        _log('⚠️ Erro ao enviar notificação de início: $e');
       }
 
-      print('✅ Execução iniciada: $chamadoId');
+      _log('✅ Execução iniciada: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao iniciar execução: $e');
+      _log('❌ Erro ao iniciar execução: $e');
       rethrow;
     }
   }
@@ -406,9 +466,9 @@ class ManutencaoService {
         'status': StatusChamadoManutencao.atribuidoExecutor.value,
       });
 
-      print('✅ Execução pausada: $chamadoId');
+      _log('✅ Execução pausada: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao pausar execução: $e');
+      _log('❌ Erro ao pausar execução: $e');
       rethrow;
     }
   }
@@ -460,12 +520,12 @@ class ManutencaoService {
           data: {'chamadoId': chamadoId, 'tipo': 'MANUTENCAO'},
         );
       } catch (e) {
-        print('⚠️ Erro ao enviar notificação de finalização: $e');
+        _log('⚠️ Erro ao enviar notificação de finalização: $e');
       }
 
-      print('✅ Chamado finalizado: $chamadoId');
+      _log('✅ Chamado finalizado: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao finalizar chamado: $e');
+      _log('❌ Erro ao finalizar chamado: $e');
       rethrow;
     }
   }
@@ -506,12 +566,12 @@ class ManutencaoService {
           data: {'chamadoId': chamadoId, 'tipo': 'MANUTENCAO'},
         );
       } catch (e) {
-        print('⚠️ Erro ao enviar notificação de recusa: $e');
+        _log('⚠️ Erro ao enviar notificação de recusa: $e');
       }
 
-      print('✅ Chamado recusado: $chamadoId');
+      _log('✅ Chamado recusado: $chamadoId');
     } catch (e) {
-      print('❌ Erro ao recusar chamado: $e');
+      _log('❌ Erro ao recusar chamado: $e');
       rethrow;
     }
   }
@@ -530,10 +590,10 @@ class ManutencaoService {
       await ref.putFile(arquivo);
       final url = await ref.getDownloadURL();
 
-      print('✅ Orçamento enviado: $url');
+      _log('✅ Orçamento enviado: $url');
       return url;
     } catch (e) {
-      print('❌ Erro ao enviar orçamento: $e');
+      _log('❌ Erro ao enviar orçamento: $e');
       rethrow;
     }
   }
@@ -548,10 +608,10 @@ class ManutencaoService {
       await ref.putFile(foto);
       final url = await ref.getDownloadURL();
 
-      print('✅ Foto enviada: $url');
+      _log('✅ Foto enviada: $url');
       return url;
     } catch (e) {
-      print('❌ Erro ao enviar foto: $e');
+      _log('❌ Erro ao enviar foto: $e');
       rethrow;
     }
   }
@@ -572,13 +632,13 @@ class ManutencaoService {
         final url = await ref.getDownloadURL();
         urls.add(url);
 
-        print('✅ Foto ${i + 1}/${fotos.length} enviada: $url');
+        _log('✅ Foto ${i + 1}/${fotos.length} enviada: $url');
       }
 
-      print('✅ Total de ${urls.length} fotos enviadas');
+      _log('✅ Total de ${urls.length} fotos enviadas');
       return urls;
     } catch (e) {
-      print('❌ Erro ao enviar fotos: $e');
+      _log('❌ Erro ao enviar fotos: $e');
       rethrow;
     }
   }
@@ -589,9 +649,9 @@ class ManutencaoService {
       await _firestore.collection(_chamadosCollection).doc(chamadoId).update({
         'fotosUrls': fotosUrls,
       });
-      print('✅ Fotos atualizadas no chamado $chamadoId');
+      _log('✅ Fotos atualizadas no chamado $chamadoId');
     } catch (e) {
-      print('❌ Erro ao atualizar fotos: $e');
+      _log('❌ Erro ao atualizar fotos: $e');
       rethrow;
     }
   }
@@ -616,7 +676,7 @@ class ManutencaoService {
 
       return ChamadoManutencao.fromMap(doc.data()!, doc.id);
     } catch (e) {
-      print('❌ Erro ao buscar chamado: $e');
+      _log('❌ Erro ao buscar chamado: $e');
       rethrow;
     }
   }
@@ -629,12 +689,12 @@ class ManutencaoService {
         .orderBy('dataAbertura', descending: true)
         .snapshots()
         .map((snapshot) {
-          print('🔍 DEBUG: Total de docs retornados: ${snapshot.docs.length}');
+          _log('🔍 DEBUG: Total de docs retornados: ${snapshot.docs.length}');
           final chamados = snapshot.docs.map((doc) {
-            print('📄 DEBUG: Doc ${doc.id} - tipo: ${doc.data()['tipo']}');
+            _log('📄 DEBUG: Doc ${doc.id} - tipo: ${doc.data()['tipo']}');
             return ChamadoManutencao.fromMap(doc.data(), doc.id);
           }).toList();
-          print('✅ DEBUG: Total de chamados processados: ${chamados.length}');
+          _log('✅ DEBUG: Total de chamados processados: ${chamados.length}');
           return chamados;
         });
   }
@@ -657,19 +717,46 @@ class ManutencaoService {
         });
   }
 
-  /// Stream de chamados para Executor (apenas atribuídos a ele)
+  /// Stream de chamados para Executor (atribuídos a ele OU criados por ele)
+  /// Isso permite que o executor veja os chamados que criou e ainda estão
+  /// em processo de validação/aprovação
   Stream<List<ChamadoManutencao>> getChamadosParaExecutor(String executorId) {
-    return _firestore
+    // Stream de chamados atribuídos ao executor
+    final atribuidosStream = _firestore
         .collection(_chamadosCollection)
         .where('tipo', isEqualTo: 'MANUTENCAO')
         .where('execucao.executorId', isEqualTo: executorId)
-        .orderBy('dataAbertura', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => ChamadoManutencao.fromMap(doc.data(), doc.id))
-              .toList();
-        });
+        .snapshots();
+
+    // Combinar com chamados criados pelo executor
+    return atribuidosStream.asyncMap((atribuidosSnapshot) async {
+      final criadosSnapshot = await _firestore
+          .collection(_chamadosCollection)
+          .where('tipo', isEqualTo: 'MANUTENCAO')
+          .where('criadorId', isEqualTo: executorId)
+          .where('criadorTipo', isEqualTo: 'executor')
+          .get();
+
+      final Map<String, ChamadoManutencao> chamadosMap = {};
+
+      // Adicionar chamados atribuídos
+      for (final doc in atribuidosSnapshot.docs) {
+        chamadosMap[doc.id] = ChamadoManutencao.fromMap(doc.data(), doc.id);
+      }
+
+      // Adicionar chamados criados (sem duplicar)
+      for (final doc in criadosSnapshot.docs) {
+        if (!chamadosMap.containsKey(doc.id)) {
+          chamadosMap[doc.id] = ChamadoManutencao.fromMap(doc.data(), doc.id);
+        }
+      }
+
+      // Ordenar por data de abertura (mais recentes primeiro)
+      final chamados = chamadosMap.values.toList();
+      chamados.sort((a, b) => b.dataAbertura.compareTo(a.dataAbertura));
+
+      return chamados;
+    });
   }
 
   /// Stream de chamados criados por um usuário
@@ -737,7 +824,7 @@ class ManutencaoService {
         'statusMap': statusMap,
       };
     } catch (e) {
-      print('❌ Erro ao buscar estatísticas: $e');
+      _log('❌ Erro ao buscar estatísticas: $e');
       return {
         'total': 0,
         'abertos': 0,
@@ -762,7 +849,7 @@ class ManutencaoService {
   /// Throws: Exception se houver erro na exclusão
   Future<void> deletarChamado(String chamadoId) async {
     try {
-      print('🗑️ Iniciando exclusão do chamado: $chamadoId');
+      _log('🗑️ Iniciando exclusão do chamado: $chamadoId');
 
       // 1. Buscar chamado para verificar se existe
       final chamadoDoc = await _firestore
@@ -776,7 +863,7 @@ class ManutencaoService {
 
       // 2. Deletar subcoleção de comentários
       try {
-        print('🗑️ Deletando comentários...');
+        _log('🗑️ Deletando comentários...');
         final comentariosSnapshot = await _firestore
             .collection(_chamadosCollection)
             .doc(chamadoId)
@@ -789,14 +876,14 @@ class ManutencaoService {
           batch.delete(doc.reference);
         }
         await batch.commit();
-        print('✅ ${comentariosSnapshot.docs.length} comentários deletados');
+        _log('✅ ${comentariosSnapshot.docs.length} comentários deletados');
       } catch (e) {
-        print('⚠️ Erro ao deletar comentários: $e');
+        _log('⚠️ Erro ao deletar comentários: $e');
       }
 
       // 3. Deletar arquivos do Storage
       try {
-        print('🗑️ Deletando arquivos do Storage...');
+        _log('🗑️ Deletando arquivos do Storage...');
 
         // Deletar pasta de orçamento
         await _deletarPastaStorage('manutencao/$chamadoId/orcamento');
@@ -807,17 +894,17 @@ class ManutencaoService {
         // Deletar pasta de execução
         await _deletarPastaStorage('manutencao/$chamadoId/execucao');
 
-        print('✅ Arquivos do Storage deletados');
+        _log('✅ Arquivos do Storage deletados');
       } catch (e) {
-        print('⚠️ Erro ao deletar arquivos do Storage: $e');
+        _log('⚠️ Erro ao deletar arquivos do Storage: $e');
       }
 
       // 4. Deletar documento do chamado
       await _firestore.collection(_chamadosCollection).doc(chamadoId).delete();
 
-      print('✅ Chamado $chamadoId deletado completamente');
+      _log('✅ Chamado $chamadoId deletado completamente');
     } catch (e) {
-      print('❌ Erro ao deletar chamado: $e');
+      _log('❌ Erro ao deletar chamado: $e');
       throw 'Erro ao deletar chamado: $e';
     }
   }
@@ -830,7 +917,7 @@ class ManutencaoService {
       // Deletar todos os arquivos
       for (final item in listResult.items) {
         await item.delete();
-        print('   🗑️ Arquivo deletado: ${item.name}');
+        _log('   🗑️ Arquivo deletado: ${item.name}');
       }
 
       // Recursivamente deletar subpastas
@@ -840,8 +927,76 @@ class ManutencaoService {
     } catch (e) {
       // Ignora erro se pasta não existir
       if (!e.toString().contains('object-not-found')) {
-        print('   ⚠️ Erro ao deletar pasta $caminho: $e');
+        _log('   ⚠️ Erro ao deletar pasta $caminho: $e');
       }
+    }
+  }
+
+  // ========== AVALIAÇÕES ==========
+
+  /// Cria uma nova avaliação para um chamado de manutenção
+  Future<void> criarAvaliacaoManutencao({
+    required String avaliacaoId,
+    required String chamadoId,
+    required String usuarioId,
+    required String usuarioNome,
+    required int nota,
+    String? comentario,
+    String? executorId,
+    String? executorNome,
+  }) async {
+    try {
+      _log('⭐ Criando avaliação para chamado $chamadoId...');
+
+      // Salvar avaliação na coleção dedicada
+      await _firestore
+          .collection('avaliacoes_manutencao')
+          .doc(avaliacaoId)
+          .set({
+            'chamadoId': chamadoId,
+            'usuarioId': usuarioId,
+            'usuarioNome': usuarioNome,
+            'nota': nota,
+            'comentario': comentario,
+            'dataAvaliacao': FieldValue.serverTimestamp(),
+            'executorId': executorId,
+            'executorNome': executorNome,
+            'tipo': 'manutencao',
+          });
+
+      // Atualizar chamado para marcar que foi avaliado
+      await _firestore.collection(_chamadosCollection).doc(chamadoId).update({
+        'avaliadoEm': FieldValue.serverTimestamp(),
+        'avaliacaoId': avaliacaoId,
+      });
+
+      _log('✅ Avaliação $avaliacaoId criada com sucesso');
+    } catch (e) {
+      _log('❌ Erro ao criar avaliação: $e');
+      throw 'Erro ao criar avaliação: $e';
+    }
+  }
+
+  /// Busca a avaliação de um chamado de manutenção
+  Future<Map<String, dynamic>?> getAvaliacaoManutencao(String chamadoId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('avaliacoes_manutencao')
+          .where('chamadoId', isEqualTo: chamadoId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = snapshot.docs.first;
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    } catch (e) {
+      _log('❌ Erro ao buscar avaliação: $e');
+      return null;
     }
   }
 }

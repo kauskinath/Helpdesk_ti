@@ -35,16 +35,8 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-            isDarkMode
-                ? 'assets/images/wallpaper_dark.png'
-                : 'assets/images/wallpaper_light.png',
-          ),
-          fit: BoxFit.cover,
-        ),
-      ),
+      // Fundo limpo para web
+      color: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F7FA),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -57,13 +49,6 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: isDarkMode ? Colors.white : Colors.black87,
-                shadows: [
-                  Shadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                    offset: const Offset(1, 1),
-                  ),
-                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -326,13 +311,19 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
             // Botões de ação
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: (isDarkMode ? const Color(0xFF1E1E1E) : Colors.white)
+                    .withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(16),
+                border: isDarkMode
+                    ? Border.all(color: Colors.white.withValues(alpha: 0.1))
+                    : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(
+                      alpha: isDarkMode ? 0.2 : 0.08,
+                    ),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -362,6 +353,12 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
                         ),
                       );
                     },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDarkMode ? Colors.white70 : null,
+                      side: BorderSide(
+                        color: isDarkMode ? Colors.white30 : AppColors.grey,
+                      ),
+                    ),
                     child: const Text('Restaurar Padrões'),
                   ),
                   const SizedBox(width: 12),
@@ -395,15 +392,22 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
   }
 
   Widget _buildSection(String title, IconData icon, Widget content) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDarkMode ? Colors.white : AppColors.textPrimary;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(16),
+        border: isDarkMode
+            ? Border.all(color: Colors.white.withValues(alpha: 0.1))
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.2 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -413,7 +417,9 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
+              color: isDarkMode
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.primary.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -425,10 +431,10 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
                 const SizedBox(width: 12),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: textColor,
                   ),
                 ),
               ],
@@ -447,18 +453,28 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
     bool value,
     Function(bool) onChanged,
   ) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final subtitleColor = isDarkMode ? Colors.white70 : AppColors.textSecondary;
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
+          color: AppColors.primary.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: AppColors.primary, size: 20),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      title: Text(
+        title,
+        style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: subtitleColor),
+      ),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -481,27 +497,44 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
     List<String> options,
     Function(String?) onChanged,
   ) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final subtitleColor = isDarkMode ? Colors.white70 : AppColors.textSecondary;
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
+          color: AppColors.primary.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: AppColors.primary, size: 20),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      title: Text(
+        title,
+        style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: subtitleColor),
+      ),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.grey.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: isDarkMode
+                ? Colors.white.withValues(alpha: 0.2)
+                : AppColors.grey.withValues(alpha: 0.3),
+          ),
           borderRadius: BorderRadius.circular(8),
+          color: isDarkMode ? Colors.white.withValues(alpha: 0.05) : null,
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: value,
+            dropdownColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+            style: TextStyle(color: textColor),
             items: options.map((option) {
               return DropdownMenuItem(value: option, child: Text(option));
             }).toList(),
@@ -519,18 +552,28 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
     int value,
     Function(int) onChanged,
   ) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    final subtitleColor = isDarkMode ? Colors.white70 : AppColors.textSecondary;
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
+          color: AppColors.primary.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: AppColors.primary, size: 20),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      title: Text(
+        title,
+        style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: subtitleColor),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -544,12 +587,17 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.grey.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: isDarkMode
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : AppColors.grey.withValues(alpha: 0.3),
+              ),
               borderRadius: BorderRadius.circular(4),
+              color: isDarkMode ? Colors.white.withValues(alpha: 0.05) : null,
             ),
             child: Text(
               value.toString(),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
             ),
           ),
           IconButton(
@@ -563,13 +611,20 @@ class _WebConfiguracoesScreenState extends State<WebConfiguracoesScreen> {
   }
 
   Widget _buildInfoRow(String label, String value) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final labelColor = isDarkMode ? Colors.white70 : AppColors.grey;
+    final valueColor = isDarkMode ? Colors.white : Colors.black87;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(label, style: TextStyle(color: labelColor)),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.w600, color: valueColor),
+          ),
         ],
       ),
     );

@@ -11,6 +11,12 @@ class AuthService extends ChangeNotifier {
   User? _currentUser;
   String? _userRole; // 'user', 'manager', 'admin'
   String? _userName;
+  bool _isLoadingRole = false; // Flag para evitar loading duplicado
+
+  // ========== LOGGING CONDICIONAL ==========
+  void _log(String message) {
+    if (kDebugMode) print(message);
+  }
 
   AuthService() {
     _firebaseAuth = FirebaseAuth.instance;
@@ -41,16 +47,22 @@ class AuthService extends ChangeNotifier {
   bool get isExecutor => _userRole == 'executor';
 
   // Stream para monitorar autenticação
+  // NOTA: Não chamamos notifyListeners() aqui para evitar race conditions
+  // O login() e _initCurrentUser() já cuidam de notificar quando necessário
   Stream<User?> get authStateChanges {
     return _firebaseAuth.authStateChanges().asyncMap((user) async {
       _currentUser = user;
       if (user != null) {
-        await _loadUserRole();
+        // Só carregar role se ainda não foi carregada (evita duplicação)
+        if (_userRole == null && !_isLoadingRole) {
+          await _loadUserRole();
+          notifyListeners();
+        }
       } else {
         _userRole = null;
         _userName = null;
+        notifyListeners();
       }
-      notifyListeners();
       return user;
     });
   }
@@ -58,11 +70,17 @@ class AuthService extends ChangeNotifier {
   /// **Carregar role do usuário do Firestore**
   Future<void> _loadUserRole() async {
     if (_currentUser == null) {
-      print('⚠️ _loadUserRole: currentUser é null');
+      _log('⚠️ _loadUserRole: currentUser é null');
       return;
     }
 
-    // Role loading - log removido para performance
+    // Evitar loading duplicado
+    if (_isLoadingRole) {
+      _log('⏳ _loadUserRole: já está carregando...');
+      return;
+    }
+
+    _isLoadingRole = true;
 
     try {
       final doc = await _firestore
@@ -70,27 +88,27 @@ class AuthService extends ChangeNotifier {
           .doc(_currentUser!.uid)
           .get();
 
-      print('📄 Documento existe: ${doc.exists}');
+      _log('📄 Documento existe: ${doc.exists}');
 
       if (doc.exists) {
         final data = doc.data();
-        print('📊 Dados completos do Firestore: $data');
+        _log('📊 Dados completos do Firestore: $data');
 
         _userRole = data?['role'] ?? 'user';
         _userName = data?['nome'] ?? data?['name'] ?? _currentUser!.email;
 
-        print('✅ ═══════════════════════════════════════');
-        print('✅ LOGIN AUTORIZADO');
-        print('✅ Email: ${_currentUser!.email}');
-        print('✅ UID: ${_currentUser!.uid}');
-        print('✅ Nome: $_userName');
-        print('✅ Role: $_userRole');
-        print('✅ Depto: ${data?['departamento'] ?? 'N/A'}');
-        print('✅ ═══════════════════════════════════════');
+        _log('✅ ═══════════════════════════════════════');
+        _log('✅ LOGIN AUTORIZADO');
+        _log('✅ Email: ${_currentUser!.email}');
+        _log('✅ UID: ${_currentUser!.uid}');
+        _log('✅ Nome: $_userName');
+        _log('✅ Role: $_userRole');
+        _log('✅ Depto: ${data?['departamento'] ?? 'N/A'}');
+        _log('✅ ═══════════════════════════════════════');
       } else {
         // EXCEÇÃO: Se for o email "administrador@helpdesk.com", criar documento admin automaticamente
         if (_currentUser!.email == 'administrador@helpdesk.com') {
-          print('🔧 CORREÇÃO DE EMERGÊNCIA: Criando documento admin...');
+          _log('🔧 CORREÇÃO DE EMERGÊNCIA: Criando documento admin...');
 
           await _firestore.collection('users').doc(_currentUser!.uid).set({
             'uid': _currentUser!.uid,
@@ -105,19 +123,19 @@ class AuthService extends ChangeNotifier {
           _userRole = 'admin';
           _userName = 'Administrador';
 
-          print('✅ ═══════════════════════════════════════');
-          print('✅ ADMIN CRIADO AUTOMATICAMENTE');
-          print('✅ Email: ${_currentUser!.email}');
-          print('✅ UID: ${_currentUser!.uid}');
-          print('✅ Nome: $_userName');
-          print('✅ Role: $_userRole');
-          print('✅ ═══════════════════════════════════════');
+          _log('✅ ═══════════════════════════════════════');
+          _log('✅ ADMIN CRIADO AUTOMATICAMENTE');
+          _log('✅ Email: ${_currentUser!.email}');
+          _log('✅ UID: ${_currentUser!.uid}');
+          _log('✅ Nome: $_userName');
+          _log('✅ Role: $_userRole');
+          _log('✅ ═══════════════════════════════════════');
         } else {
           // ❌ OUTROS USUÁRIOS SEM DOCUMENTO - NÃO AUTORIZADO
-          print(
+          _log(
             '❌ ERRO: Usuário ${_currentUser!.email} não tem documento no Firestore!',
           );
-          print('❌ Esse usuário não foi criado corretamente pelo admin.');
+          _log('❌ Esse usuário não foi criado corretamente pelo admin.');
 
           final userEmail = _currentUser!.email;
 
@@ -140,7 +158,7 @@ class AuthService extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      print('❌ Erro ao carregar role: $e');
+      _log('❌ Erro ao carregar role: $e');
 
       // Se é uma Exception que já lançamos, propagar
       if (e is Exception) {
@@ -152,13 +170,15 @@ class AuthService extends ChangeNotifier {
       _userName = null;
       notifyListeners();
       rethrow;
+    } finally {
+      _isLoadingRole = false;
     }
   }
 
   /// **LOGIN COM EMAIL E SENHA**
   Future<User?> login({required String email, required String password}) async {
     try {
-      print('🔐 Tentando login com: $email');
+      _log('🔐 Tentando login com: $email');
 
       final result = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
@@ -166,7 +186,7 @@ class AuthService extends ChangeNotifier {
       );
 
       _currentUser = result.user;
-      print('✅ Login bem-sucedido: ${result.user?.email}');
+      _log('✅ Login bem-sucedido: ${result.user?.email}');
 
       // Carregar role do usuário - CRÍTICO: não pode falhar
       await _loadUserRole();
@@ -181,7 +201,7 @@ class AuthService extends ChangeNotifier {
 
       // Se senha errada, verifica se tem senha temporária
       if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        print('🔍 Verificando senha temporária...');
+        _log('🔍 Verificando senha temporária...');
 
         try {
           // Buscar usuário pelo email no Firestore
@@ -197,7 +217,7 @@ class AuthService extends ChangeNotifier {
 
             // Se tem senha temporária E ela bate
             if (senhaTemporaria != null && senhaTemporaria == password) {
-              print(
+              _log(
                 '✅ Senha temporária válida! Atualizando senha no Firebase...',
               );
 
@@ -214,7 +234,7 @@ class AuthService extends ChangeNotifier {
           if (tempError.toString().startsWith('SENHA_TEMPORARIA_DETECTADA')) {
             rethrow;
           }
-          print('⚠️ Erro ao verificar senha temporária: $tempError');
+          _log('⚠️ Erro ao verificar senha temporária: $tempError');
         }
 
         errorMsg = 'Senha incorreta.';
@@ -226,17 +246,17 @@ class AuthService extends ChangeNotifier {
         errorMsg = 'Usuário desabilitado.';
       }
 
-      print('❌ Erro de login: $errorMsg (código: ${e.code})');
+      _log('❌ Erro de login: $errorMsg (código: ${e.code})');
       throw errorMsg;
     } on TypeError catch (e) {
       // WORKAROUND: Ignorar erro de type cast do PigeonUserDetails (bug do Firebase Auth)
-      print('⚠️ Ignorando erro de type cast (PigeonUserDetails): $e');
+      _log('⚠️ Ignorando erro de type cast (PigeonUserDetails): $e');
 
       // Mesmo com erro de type cast, o login foi bem-sucedido
       _currentUser = _firebaseAuth.currentUser;
 
       if (_currentUser != null) {
-        print('✅ Login OK apesar do erro de type cast: ${_currentUser!.email}');
+        _log('✅ Login OK apesar do erro de type cast: ${_currentUser!.email}');
 
         // Carregar role - SE FALHAR, o login deve falhar também
         await _loadUserRole();
@@ -250,7 +270,7 @@ class AuthService extends ChangeNotifier {
 
       throw 'Erro ao fazer login. Tente novamente.';
     } catch (e) {
-      print('❌ Erro inesperado no login: $e');
+      _log('❌ Erro inesperado no login: $e');
       throw e.toString();
     }
   }
@@ -258,9 +278,9 @@ class AuthService extends ChangeNotifier {
   /// **RESET DE SENHA**
   Future<void> resetPassword(String email) async {
     try {
-      print('📧 Enviando email de reset para: $email');
+      _log('📧 Enviando email de reset para: $email');
       await _firebaseAuth.sendPasswordResetEmail(email: email);
-      print('✅ Email de reset enviado com sucesso');
+      _log('✅ Email de reset enviado com sucesso');
     } on FirebaseAuthException catch (e) {
       String errorMsg = 'Erro ao enviar email';
 
@@ -270,10 +290,10 @@ class AuthService extends ChangeNotifier {
         errorMsg = 'Email inválido.';
       }
 
-      print('❌ Erro ao resetar senha: $errorMsg');
+      _log('❌ Erro ao resetar senha: $errorMsg');
       throw errorMsg;
     } catch (e) {
-      print('❌ Erro inesperado ao resetar senha: $e');
+      _log('❌ Erro inesperado ao resetar senha: $e');
       throw 'Erro ao resetar senha: $e';
     }
   }
@@ -281,20 +301,41 @@ class AuthService extends ChangeNotifier {
   /// **LOGOUT**
   Future<void> logout() async {
     try {
-      // Remover token FCM antes de deslogar
-      if (_notificationService != null && _currentUser != null) {
-        await _notificationService!.removeUserToken(_currentUser!.uid);
+      _log('🚪 Iniciando logout...');
+
+      // Limpar dados locais PRIMEIRO para evitar problemas de stream
+      final userId = _currentUser?.uid;
+      _currentUser = null;
+      _userRole = null;
+      _userName = null;
+
+      // Notificar listeners imediatamente sobre o logout
+      notifyListeners();
+
+      // Remover token FCM em background (não bloquear o logout)
+      if (_notificationService != null && userId != null) {
+        _notificationService!.removeUserToken(userId).catchError((e) {
+          _log('⚠️ Erro ao remover token FCM (ignorando): $e');
+        });
       }
 
-      await _firebaseAuth.signOut();
+      // Fazer signOut com timeout para evitar travamento
+      await _firebaseAuth.signOut().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          _log('⚠️ Timeout no signOut, continuando...');
+        },
+      );
+
+      _log('✅ Logout realizado com sucesso');
+    } catch (e) {
+      _log('❌ Erro ao fazer logout: $e');
+      // Mesmo com erro, limpar estado local
       _currentUser = null;
       _userRole = null;
       _userName = null;
       notifyListeners();
-      print('✅ Logout realizado com sucesso');
-    } catch (e) {
-      print('❌ Erro ao fazer logout: $e');
-      throw 'Erro ao fazer logout: $e';
+      // Não lançar exceção para evitar travamentos
     }
   }
 
@@ -306,12 +347,12 @@ class AuthService extends ChangeNotifier {
   /// **Inicializar notificações após login bem-sucedido**
   Future<void> initializeNotifications() async {
     if (_notificationService == null || _currentUser == null) {
-      print('⚠️ NotificationService ou currentUser é null');
+      _log('⚠️ NotificationService ou currentUser é null');
       return;
     }
 
     try {
-      print(
+      _log(
         '📱 Inicializando notificações para usuário: ${_currentUser!.email}',
       );
 
@@ -319,29 +360,29 @@ class AuthService extends ChangeNotifier {
       await _notificationService!.initialize();
 
       // Salvar token FCM no Firestore
-      print(
+      _log(
         '💾 Salvando token FCM para userId: ${_currentUser!.uid}, role: $_userRole',
       );
       await _notificationService!.saveUserToken(_currentUser!.uid);
-      print('✅ Token FCM salvo com sucesso!');
+      _log('✅ Token FCM salvo com sucesso!');
 
       // Inscrever em tópicos baseado no role
       if (isAdmin) {
         await _notificationService!.subscribeToTopic('ti_team');
         await _notificationService!.subscribeToTopic('admins');
-        print('✅ Inscrito em tópicos: ti_team, admins');
+        _log('✅ Inscrito em tópicos: ti_team, admins');
       } else if (isManager) {
         await _notificationService!.subscribeToTopic('managers');
-        print('✅ Inscrito em tópico: managers');
+        _log('✅ Inscrito em tópico: managers');
       }
 
       // CRÍTICO: Iniciar listener para receber notificações em tempo real
       _notificationService!.startNotificationListener(_currentUser!.uid);
-      print('✅ Listener de notificações iniciado');
+      _log('✅ Listener de notificações iniciado');
 
-      print('✅ Notificações inicializadas com sucesso');
+      _log('✅ Notificações inicializadas com sucesso');
     } catch (e) {
-      print('❌ Erro ao inicializar notificações: $e');
+      _log('❌ Erro ao inicializar notificações: $e');
       // Não falhar o login se notificações falharem
     }
   }
@@ -359,7 +400,7 @@ class AuthService extends ChangeNotifier {
     }
 
     try {
-      print('👤 Criando novo usuário: $email com role=$role');
+      _log('👤 Criando novo usuário: $email com role=$role');
 
       // Criar usuário no Firebase Auth
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
@@ -378,7 +419,7 @@ class AuthService extends ChangeNotifier {
         'ativo': true,
       });
 
-      print('✅ Usuário criado com sucesso: $email');
+      _log('✅ Usuário criado com sucesso: $email');
     } on FirebaseAuthException catch (e) {
       String errorMsg = 'Erro ao criar usuário';
 
@@ -390,10 +431,10 @@ class AuthService extends ChangeNotifier {
         errorMsg = 'Email inválido.';
       }
 
-      print('❌ Erro ao criar usuário: $errorMsg');
+      _log('❌ Erro ao criar usuário: $errorMsg');
       throw errorMsg;
     } catch (e) {
-      print('❌ Erro inesperado: $e');
+      _log('❌ Erro inesperado: $e');
       throw 'Erro ao criar usuário: $e';
     }
   }
@@ -411,10 +452,25 @@ class AuthService extends ChangeNotifier {
       await _firestore.collection('users').doc(userId).update({
         'role': newRole,
       });
-      print('✅ Role atualizado: $userId -> $newRole');
+      _log('✅ Role atualizado: $userId -> $newRole');
     } catch (e) {
-      print('❌ Erro ao atualizar role: $e');
+      _log('❌ Erro ao atualizar role: $e');
       throw 'Erro ao atualizar role: $e';
+    }
+  }
+
+  /// **ATUALIZAR DADOS DO USUÁRIO (apenas admin)**
+  Future<void> updateUserData(String userId, Map<String, dynamic> data) async {
+    if (!isAdmin) {
+      throw 'Apenas admin pode atualizar usuários';
+    }
+
+    try {
+      await _firestore.collection('users').doc(userId).update(data);
+      _log('✅ Usuário atualizado: $userId');
+    } catch (e) {
+      _log('❌ Erro ao atualizar usuário: $e');
+      throw 'Erro ao atualizar usuário: $e';
     }
   }
 
@@ -442,11 +498,10 @@ class AuthService extends ChangeNotifier {
     try {
       // Soft delete - marca como inativo
       await _firestore.collection('users').doc(userId).update({'ativo': false});
-      print('✅ Usuário deletado: $userId');
+      _log('✅ Usuário deletado: $userId');
     } catch (e) {
-      print('❌ Erro ao deletar usuário: $e');
+      _log('❌ Erro ao deletar usuário: $e');
       throw 'Erro ao deletar usuário: $e';
     }
   }
 }
-

@@ -6,10 +6,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/manutencao_service.dart';
 import '../../models/chamado_manutencao_model.dart';
 import '../../models/manutencao_enums.dart';
+import '../../widgets/avaliacao_manutencao_widget.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../executor/manutencao_executar_screen.dart';
-import '../executor/manutencao_recusar_screen.dart';
+import '../admin/manutencao_validar_chamado_screen.dart';
+import '../admin/manutencao_atribuir_executor_screen.dart';
 
 /// Tela de detalhes do chamado de manutenção
 class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
@@ -122,6 +124,15 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                         children: [
                           _buildInfoCard(context, chamado, isDarkMode),
 
+                          // Botões de ação para ADMIN MANUTENÇÃO
+                          if (isAdminManutencao)
+                            _buildBotoesAdminManutencao(
+                              context,
+                              chamado,
+                              manutencaoService,
+                              isDarkMode,
+                            ),
+
                           // Botões de ação para EXECUTOR
                           if (isExecutor &&
                               chamado.execucao?.executorId == userId)
@@ -129,6 +140,17 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                               context,
                               chamado,
                               manutencaoService,
+                            ),
+
+                          // Widget de avaliação (apenas para o criador do chamado quando finalizado)
+                          if (chamado.criadorId == userId &&
+                              chamado.status ==
+                                  StatusChamadoManutencao.finalizado)
+                            AvaliacaoManutencaoWidget(
+                              chamado: chamado,
+                              onAvaliacaoEnviada: () {
+                                // Pode recarregar a tela se necessário
+                              },
                             ),
                         ],
                       ),
@@ -839,6 +861,244 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
     );
   }
 
+  /// Botões de ação para o ADMIN MANUTENÇÃO
+  Widget _buildBotoesAdminManutencao(
+    BuildContext context,
+    ChamadoManutencao chamado,
+    ManutencaoService manutencaoService,
+    bool isDarkMode,
+  ) {
+    final status = chamado.status;
+
+    // DEBUG: Verificar condições
+    print('🔧 DEBUG ADMIN MANUTENCAO:');
+    print('   Status: ${status.value}');
+    print('   precisaValidacao: ${chamado.precisaValidacao}');
+    print('   validado: ${chamado.validado}');
+    print('   execucao: ${chamado.execucao}');
+
+    // Precisa validar: chamado aberto que ainda não foi validado
+    final precisaValidacao =
+        !chamado.validado &&
+        (status == StatusChamadoManutencao.aberto ||
+            status == StatusChamadoManutencao.emValidacaoAdmin);
+
+    // Pode atribuir executor: já validado ou não precisa validação, sem executor atribuído
+    final podeAtribuirExecutor =
+        chamado.execucao == null &&
+        (status == StatusChamadoManutencao.liberadoParaExecucao ||
+            (chamado.validado && status != StatusChamadoManutencao.cancelado));
+
+    print('   precisaValidacao (calc): $precisaValidacao');
+    print('   podeAtribuirExecutor (calc): $podeAtribuirExecutor');
+
+    // Se não há ações disponíveis, não mostrar nada
+    if (!precisaValidacao && !podeAtribuirExecutor) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Card de informação
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.admin_panel_settings, color: Colors.orange.shade700),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    precisaValidacao
+                        ? 'Este chamado aguarda sua validação'
+                        : 'Este chamado precisa de um executor',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // VALIDAR CHAMADO
+          if (precisaValidacao) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ManutencaoValidarChamadoScreen(chamado: chamado),
+                        ),
+                      );
+                      if (result == true && context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: const Icon(Icons.check_circle, size: 24),
+                    label: const Text(
+                      'VALIDAR',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () =>
+                        _rejeitarChamado(context, chamado, manutencaoService),
+                    icon: const Icon(Icons.cancel, size: 24),
+                    label: const Text(
+                      'REJEITAR',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          // ATRIBUIR EXECUTOR
+          if (podeAtribuirExecutor) ...[
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ManutencaoAtribuirExecutorScreen(chamado: chamado),
+                  ),
+                );
+                if (result == true && context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              icon: const Icon(Icons.person_add, size: 24),
+              label: const Text(
+                'ATRIBUIR EXECUTOR',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Rejeitar chamado diretamente
+  Future<void> _rejeitarChamado(
+    BuildContext context,
+    ChamadoManutencao chamado,
+    ManutencaoService manutencaoService,
+  ) async {
+    // Capturar referências ANTES de qualquer await
+    final authService = context.read<AuthService>();
+    final user = authService.firebaseUser;
+    final userName = authService.userName ?? user?.email ?? 'Admin';
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    if (user == null) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('❌ Usuário não autenticado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Rejeitar Chamado?'),
+          ],
+        ),
+        content: const Text(
+          'Confirma a rejeição deste chamado?\n\nEle será cancelado e o solicitante será notificado.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Rejeitar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    try {
+      await manutencaoService.validarChamado(
+        chamadoId: chamado.id,
+        adminId: user.uid,
+        adminNome: userName,
+        aprovado: false,
+      );
+
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('❌ Chamado rejeitado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      navigator.pop();
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('❌ Erro: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   /// Botões de ação para o EXECUTOR
   Widget _buildBotoesExecutor(
     BuildContext context,
@@ -990,32 +1250,7 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // Botão RECUSAR (menor)
-            OutlinedButton.icon(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ManutencaoRecusarScreen(chamado: chamado),
-                  ),
-                );
-                if (result == true && context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
-              icon: const Icon(Icons.cancel, size: 20),
-              label: const Text('Recusar Trabalho'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+            // Botão RECUSAR removido - executores não podem mais recusar trabalhos
           ],
         ],
       ),

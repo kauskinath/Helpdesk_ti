@@ -6,7 +6,9 @@ import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 /// Tela de boas-vindas que solicita TODAS as permissões necessárias
 /// ANTES do usuário fazer login (especialmente importante para Xiaomi)
 class PermissionRequestScreen extends StatefulWidget {
-  const PermissionRequestScreen({super.key});
+  final VoidCallback? onComplete;
+
+  const PermissionRequestScreen({super.key, this.onComplete});
 
   @override
   State<PermissionRequestScreen> createState() =>
@@ -54,10 +56,11 @@ class _PermissionRequestScreenState extends State<PermissionRequestScreen> {
         _deniedPermissions.add('⚠️ Notificações (Não Determinada)');
       }
     } catch (e) {
+      print('⚠️ Erro ao solicitar permissões de notificação: $e');
       _deniedPermissions.add('❌ Notificações (Erro: $e)');
     }
 
-    // Prosseguir direto para login (sem diálogo de confirmação)
+    // Prosseguir direto para login
     if (mounted) {
       await Future.delayed(const Duration(milliseconds: 500));
       _proceedToLogin();
@@ -65,8 +68,12 @@ class _PermissionRequestScreenState extends State<PermissionRequestScreen> {
   }
 
   void _proceedToLogin() {
-    // Retornar para o AuthWrapper que irá mostrar o LoginScreen
-    Navigator.pop(context, true);
+    // Se temos callback, usar ele; senão, usar Navigator.pop
+    if (widget.onComplete != null) {
+      widget.onComplete!();
+    } else {
+      Navigator.pop(context, true);
+    }
   }
 
   @override

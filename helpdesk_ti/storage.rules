@@ -2,29 +2,121 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Função auxiliar para verificar autenticação
+    
+    // ============================================================
+    // FUNÇÕES AUXILIARES
+    // ============================================================
+    
+    // Verifica se usuário está autenticado
     function isAuthenticated() {
       return request.auth != null;
     }
+    
+    // Verifica se é admin TI
+    function isAdmin() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'ti'];
+    }
+    
+    // Verifica se é admin de manutenção
+    function isAdminManutencao() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin_manutencao';
+    }
+    
+    // Verifica se é executor
+    function isExecutor() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'executor';
+    }
+    
+    // Verifica se é gerente
+    function isManager() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'manager';
+    }
+    
+    // Verifica tamanho máximo do arquivo (10MB)
+    function isValidFileSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Verifica tipos de arquivo permitidos para imagens
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // Verifica tipos de arquivo permitidos para documentos
+    function isValidDocumentType() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*');
+    }
 
-    // Regras para arquivos de manutenção
+    // ============================================================
+    // REGRAS PARA MANUTENÇÃO
+    // ============================================================
+    
     match /manutencao/{chamadoId}/{allPaths=**} {
-      // Permitir leitura e escrita para usuários autenticados
-      allow read, write: if isAuthenticated();
+      // Leitura: Usuários autenticados (para ver fotos anexadas)
+      allow read: if isAuthenticated();
+      
+      // Escrita: Apenas roles autorizadas com validações
+      allow write: if isAuthenticated() && 
+                      (isAdminManutencao() || isExecutor() || isManager()) &&
+                      isValidFileSize() &&
+                      (isValidImageType() || isValidDocumentType());
+      
+      // Criador do chamado também pode fazer upload (fotos iniciais)
+      allow create: if isAuthenticated() && 
+                       isValidFileSize() &&
+                       (isValidImageType() || isValidDocumentType());
     }
 
-    // Regras para arquivos de TI (se existirem)
+    // ============================================================
+    // REGRAS PARA TI
+    // ============================================================
+    
     match /ti/{chamadoId}/{allPaths=**} {
-      // Permitir leitura e escrita para usuários autenticados
-      allow read, write: if isAuthenticated();
+      // Leitura: Usuários autenticados
+      allow read: if isAuthenticated();
+      
+      // Escrita: Admin TI ou criador do chamado
+      allow write: if isAuthenticated() && 
+                      isValidFileSize() &&
+                      (isValidImageType() || isValidDocumentType());
+    }
+    
+    // ============================================================
+    // REGRAS PARA TICKETS (legado/compatibilidade)
+    // ============================================================
+    
+    match /tickets/{ticketId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                      isValidFileSize() &&
+                      (isValidImageType() || isValidDocumentType());
     }
 
-    // Regras para avatares de usuários
+    // ============================================================
+    // REGRAS PARA AVATARES
+    // ============================================================
+    
     match /users/{userId}/avatar {
-      allow read: if true; // Avatares públicos
-      allow write: if isAuthenticated() && request.auth.uid == userId;
+      // Avatares são públicos para leitura
+      allow read: if true;
+      
+      // Apenas o próprio usuário pode atualizar seu avatar
+      allow write: if isAuthenticated() && 
+                      request.auth.uid == userId &&
+                      isValidFileSize() &&
+                      isValidImageType();
     }
 
+    // ============================================================
+    // BLOQUEIO GERAL
+    // ============================================================
+    
     // Bloquear tudo que não foi especificado
     match /{document=**} {
       allow read, write: if false;

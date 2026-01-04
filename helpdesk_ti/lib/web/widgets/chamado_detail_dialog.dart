@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/theme/app_colors.dart';
+import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
+import 'package:helpdesk_ti/features/ti/models/avaliacao.dart';
 import '../../data/firestore_service.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../../widgets/chamado/status_badge.dart';
@@ -20,6 +22,33 @@ class ChamadoDetailDialog extends StatefulWidget {
 class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
   final TextEditingController _commentController = TextEditingController();
   bool _isSubmitting = false;
+  Avaliacao? _avaliacaoExistente;
+  bool _carregandoAvaliacao = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarAvaliacao();
+  }
+
+  Future<void> _carregarAvaliacao() async {
+    try {
+      final firestoreService = context.read<FirestoreService>();
+      final avaliacao = await firestoreService.getAvaliacaoPorChamado(
+        widget.chamado.id,
+      );
+      if (mounted) {
+        setState(() {
+          _avaliacaoExistente = avaliacao;
+          _carregandoAvaliacao = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _carregandoAvaliacao = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -126,13 +155,25 @@ class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
     try {
       final firestoreService = context.read<FirestoreService>();
 
-      await firestoreService.atualizarChamado(widget.chamado.id, {
+      final Map<String, dynamic> updates = {
         'status': newStatus,
         'dataAtualizacao': DateTime.now(),
-        if (newStatus == 'Fechado') 'dataFechamento': DateTime.now(),
-      });
+      };
+
+      // Se fechando, adicionar data de fechamento
+      if (newStatus == 'Fechado') {
+        updates['dataFechamento'] = DateTime.now();
+      }
+
+      // Se reabrindo, limpar data de fechamento
+      if (newStatus == 'Aberto') {
+        updates['dataFechamento'] = null;
+      }
+
+      await firestoreService.atualizarChamado(widget.chamado.id, updates);
 
       if (mounted) {
+        Navigator.of(context).pop(); // Fechar dialog após atualizar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -178,19 +219,30 @@ class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+
+    // Usar o status atual do chamado diretamente
+    final statusEfetivo = widget.chamado.status;
+    final isFechado =
+        statusEfetivo == 'Fechado' || statusEfetivo == 'Rejeitado';
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(16),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
+          border: isDarkMode
+              ? Border.all(color: Colors.white.withValues(alpha: 0.1))
+              : null,
+          boxShadow: [
             BoxShadow(
-              color: Colors.black,
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.5 : 0.3),
               blurRadius: 20,
-              offset: Offset(0, 10),
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -199,9 +251,15 @@ class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
             // Header
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                gradient: isDarkMode
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1A237E), Color(0xFF0D47A1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : AppColors.primaryGradient,
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
@@ -271,7 +329,7 @@ class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
                           // Status e Prioridade
                           Row(
                             children: [
-                              StatusBadge(status: widget.chamado.status),
+                              StatusBadge(status: statusEfetivo),
                               const SizedBox(width: 12),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -681,48 +739,65 @@ class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
                           const Divider(),
                           const SizedBox(height: 16),
 
-                          // Ações Rápidas
-                          const Text(
-                            '⚡ Ações Rápidas',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                          // Ações Rápidas baseadas no status
+                          if (!isFechado) ...[
+                            const Text(
+                              '⚡ Ações Rápidas',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
+                            const SizedBox(height: 12),
 
-                          if (widget.chamado.status != 'Em Andamento')
-                            _buildActionButton(
-                              'Iniciar Atendimento',
-                              Icons.play_arrow,
-                              AppColors.statusInProgress,
-                              () => _updateStatus('Em Andamento'),
+                            // Status Aberto: Iniciar Atendimento ou Rejeitar
+                            if (statusEfetivo == 'Aberto') ...[
+                              _buildActionButton(
+                                'Iniciar Atendimento',
+                                Icons.play_arrow,
+                                AppColors.statusInProgress,
+                                () => _updateStatus('Em Andamento'),
+                              ),
+                              _buildActionButton(
+                                'Rejeitar',
+                                Icons.cancel,
+                                AppColors.error,
+                                () => _updateStatus('Rejeitado'),
+                              ),
+                            ],
+
+                            // Status Em Andamento: apenas Fechar
+                            if (statusEfetivo == 'Em Andamento')
+                              _buildActionButton(
+                                'Marcar como Fechado',
+                                Icons.check_circle,
+                                AppColors.success,
+                                () => _updateStatus('Fechado'),
+                              ),
+                          ],
+
+                          // Seção de Avaliação (apenas para chamados fechados/rejeitados)
+                          if (isFechado) ...[
+                            const Text(
+                              '⭐ Avaliação do Usuário',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
-
-                          if (widget.chamado.status == 'Em Andamento')
-                            _buildActionButton(
-                              'Marcar como Fechado',
-                              Icons.check_circle,
-                              AppColors.success,
-                              () => _updateStatus('Fechado'),
-                            ),
-
-                          if (widget.chamado.status != 'Rejeitado')
-                            _buildActionButton(
-                              'Rejeitar',
-                              Icons.cancel,
-                              AppColors.error,
-                              () => _updateStatus('Rejeitado'),
-                            ),
-
-                          if (widget.chamado.status == 'Fechado')
+                            const SizedBox(height: 12),
+                            _buildAvaliacaoSection(),
+                            const SizedBox(height: 16),
+                            // Botão reabrir no final
                             _buildActionButton(
                               'Reabrir Chamado',
                               Icons.refresh,
                               AppColors.warning,
                               () => _updateStatus('Aberto'),
                             ),
+                          ],
                         ],
                       ),
                     ),
@@ -732,6 +807,106 @@ class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAvaliacaoSection() {
+    if (_carregandoAvaliacao) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_avaliacaoExistente == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.star_border, size: 32, color: Colors.grey.shade400),
+            const SizedBox(height: 8),
+            Text(
+              'Aguardando avaliação',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'O usuário ainda não avaliou este chamado',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final avaliacao = _avaliacaoExistente!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.amber.withValues(alpha: 0.1),
+            Colors.orange.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          // Estrelas
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              return Icon(
+                index < avaliacao.nota ? Icons.star : Icons.star_border,
+                color: Colors.amber,
+                size: 28,
+              );
+            }),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${avaliacao.nota}/5',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+            ),
+          ),
+          if (avaliacao.comentario != null &&
+              avaliacao.comentario!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '"${avaliacao.comentario}"',
+                style: const TextStyle(
+                  fontStyle: FontStyle.italic,
+                  fontSize: 13,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -832,6 +1007,3 @@ class _ChamadoDetailDialogState extends State<ChamadoDetailDialog> {
     );
   }
 }
-
-
-

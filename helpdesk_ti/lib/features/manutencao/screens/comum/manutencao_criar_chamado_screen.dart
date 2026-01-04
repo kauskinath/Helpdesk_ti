@@ -201,9 +201,18 @@ class _ManutencaoCriarChamadoScreenState
         titulo: _tituloController.text.trim(),
         descricao: _descricaoController.text.trim(),
         criadorId: user.uid,
-        criadorNome: user.displayName ?? user.email ?? 'Usuário',
-        criadorTipo: TipoCriadorChamado.usuarioComum,
+        criadorNome:
+            _authService.userName ??
+            user.displayName ??
+            user.email ??
+            'Usuário',
+        // Se for executor, usar tipo executor para que o chamado apareça na lista dele
+        criadorTipo: _authService.isExecutor
+            ? TipoCriadorChamado.executor
+            : TipoCriadorChamado.usuarioComum,
         orcamento: orcamento,
+        // Auto-atribuir ao executor se for ele criando
+        autoAtribuicao: _authService.isExecutor,
       );
 
       // PASSO 2: Se tem arquivo, fazer upload e atualizar

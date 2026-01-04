@@ -155,6 +155,33 @@ service cloud.firestore {
       // Avaliações não podem ser modificadas após criação
       allow update, delete: if false;
     }
+
+    // ============================================================
+    // COLEÇÃO: avaliacoes_manutencao
+    // ============================================================
+    
+    match /avaliacoes_manutencao/{avaliacaoId} {
+      // Leitura individual (get):
+      // - Admin Manutenção/Manager: Todas as avaliações
+      // - User: Suas próprias avaliações
+      allow get: if isAdminManutencao() || isManager() || resource.data.usuarioId == request.auth.uid;
+      
+      // Listagem/Queries (list):
+      // - Todos usuários autenticados podem listar
+      allow list: if isSignedIn();
+      
+      // Criação:
+      // - Usuário pode avaliar chamados onde ele é o criador
+      allow create: if isSignedIn() && 
+                       request.resource.data.usuarioId == request.auth.uid;
+      
+      // Atualização: Usuário pode atualizar sua própria avaliação
+      allow update: if isSignedIn() && 
+                       resource.data.usuarioId == request.auth.uid;
+      
+      // Deleção: Bloqueada
+      allow delete: if false;
+    }
     
     // ============================================================
     // COLEÇÃO: templates
@@ -309,14 +336,19 @@ service cloud.firestore {
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['execucao', 'status', 'recusa', 'dataFinalizacao'])) ||
         
         // Criador: Pode atualizar descrição, orçamento e fotos se for o criador
-        // Permite atualizar quando status for 'aberto' OU quando estiver apenas atualizando esses campos
+        // Permite atualizar quando status for 'aberto' (TI) ou 'ABERTO' (Manutencao) OU quando estiver apenas atualizando esses campos
         (isCriador() && (
-          resource.data.status == 'aberto' ||
+          resource.data.status in ['aberto', 'ABERTO'] ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotosUrls']) ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orcamento']) ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'fotosUrls']) ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'orcamento']) ||
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'orcamento', 'fotosUrls'])
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'orcamento', 'fotosUrls']) ||
+          // Criador pode avaliar seu próprio chamado (adicionar avaliadoEm e avaliacaoId)
+          // Usa hasAny para suportar quando os campos são adicionados pela primeira vez
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadoEm', 'avaliacaoId']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadoEm']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliacaoId'])
         ))
       );
       
@@ -326,16 +358,26 @@ service cloud.firestore {
     }
     
     // ============================================================
-    // COLEÇÃO: counters
+    // COLEÇÃO: counters (PROTEGIDA)
     // ============================================================
     
     match /counters/{counterId} {
       // Leitura: Qualquer usuário autenticado pode ler contadores
       allow read: if isSignedIn();
       
-      // Escrita: Qualquer usuário autenticado pode atualizar contadores
-      // (necessário para gerar números sequenciais de chamados)
-      allow write: if isSignedIn();
+      // Escrita: Apenas operações de incremento válidas
+      // Verificar se o novo valor é exatamente 1 a mais que o anterior
+      // OU se está criando o contador pela primeira vez
+      allow create: if isSignedIn() && 
+                       request.resource.data.keys().hasOnly(['ultimoNumero']) &&
+                       request.resource.data.ultimoNumero == 1;
+      
+      allow update: if isSignedIn() && 
+                       request.resource.data.keys().hasOnly(['ultimoNumero']) &&
+                       request.resource.data.ultimoNumero == resource.data.ultimoNumero + 1;
+      
+      // Deleção: Apenas admins (para reset de emergência)
+      allow delete: if isAdmin();
     }
     
     // ============================================================

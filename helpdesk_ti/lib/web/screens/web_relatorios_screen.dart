@@ -22,16 +22,8 @@ class _WebRelatoriosScreenState extends State<WebRelatoriosScreen> {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-            isDarkMode
-                ? 'assets/images/wallpaper_dark.png'
-                : 'assets/images/wallpaper_light.png',
-          ),
-          fit: BoxFit.cover,
-        ),
-      ),
+      // Fundo limpo para web
+      color: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F7FA),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -44,13 +36,6 @@ class _WebRelatoriosScreenState extends State<WebRelatoriosScreen> {
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: isDarkMode ? Colors.white : Colors.black87,
-                shadows: [
-                  Shadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                    offset: const Offset(1, 1),
-                  ),
-                ],
               ),
             ),
             const SizedBox(height: 24),

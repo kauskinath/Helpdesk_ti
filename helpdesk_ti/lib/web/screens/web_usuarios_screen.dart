@@ -240,22 +240,265 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
     );
   }
 
+  void _showEditUserDialog(Map<String, dynamic> user, bool isDarkMode) {
+    String selectedRole = user['role'] ?? 'user';
+    final nomeController = TextEditingController(text: user['nome'] ?? '');
+    final departamentoController = TextEditingController(
+      text: user['departamento'] ?? '',
+    );
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            width: 500,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundColor: _getRoleColor(selectedRole),
+                      child: Icon(
+                        _getRoleIcon(selectedRole),
+                        size: 25,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Editar Usuário',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            user['email'] ?? '',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Nome
+                TextFormField(
+                  controller: nomeController,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Nome',
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: isDarkMode
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey[50],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Departamento
+                TextFormField(
+                  controller: departamentoController,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Departamento',
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: isDarkMode
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey[50],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Role
+                DropdownButtonFormField<String>(
+                  initialValue: selectedRole,
+                  dropdownColor: isDarkMode
+                      ? const Color(0xFF2D2D2D)
+                      : Colors.white,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Função',
+                    labelStyle: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: isDarkMode
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey[50],
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'admin',
+                      child: Text('Administrador TI'),
+                    ),
+                    DropdownMenuItem(value: 'manager', child: Text('Gerente')),
+                    DropdownMenuItem(
+                      value: 'admin_manutencao',
+                      child: Text('Admin Manutenção'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'executor',
+                      child: Text('Executor'),
+                    ),
+                    DropdownMenuItem(value: 'user', child: Text('Usuário')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => selectedRole = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Botões
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              setDialogState(() => isLoading = true);
+
+                              try {
+                                final authService = context.read<AuthService>();
+
+                                await authService.updateUserData(user['uid'], {
+                                  'nome': nomeController.text.trim(),
+                                  'departamento': departamentoController.text
+                                      .trim(),
+                                  'role': selectedRole,
+                                });
+
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Usuário atualizado com sucesso!',
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Erro ao atualizar: $e'),
+                                      backgroundColor: AppColors.error,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setDialogState(() => isLoading = false);
+                                }
+                              }
+                            },
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.save),
+                      label: Text(isLoading ? 'Salvando...' : 'Salvar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = context.read<AuthService>();
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-            isDarkMode
-                ? 'assets/images/wallpaper_dark.png'
-                : 'assets/images/wallpaper_light.png',
-          ),
-          fit: BoxFit.cover,
-        ),
-      ),
+      // Fundo limpo para web
+      color: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F7FA),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -268,13 +511,6 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: isDarkMode ? Colors.white : Colors.black87,
-                shadows: [
-                  Shadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                    offset: const Offset(1, 1),
-                  ),
-                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -282,13 +518,19 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
             // Barra de ferramentas
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: (isDarkMode ? const Color(0xFF1E1E1E) : Colors.white)
+                    .withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(16),
+                border: isDarkMode
+                    ? Border.all(color: Colors.white.withValues(alpha: 0.1))
+                    : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(
+                      alpha: isDarkMode ? 0.2 : 0.08,
+                    ),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -300,12 +542,26 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                     flex: 2,
                     child: TextField(
                       controller: _searchController,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Buscar por nome, email ou departamento...',
-                        prefixIcon: const Icon(Icons.search),
+                        hintStyle: TextStyle(
+                          color: isDarkMode ? Colors.white54 : AppColors.grey,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: isDarkMode ? Colors.white54 : AppColors.grey,
+                        ),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear),
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: isDarkMode
+                                      ? Colors.white54
+                                      : AppColors.grey,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _searchController.clear();
@@ -315,13 +571,32 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                               )
                             : null,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: AppColors.grey.withValues(alpha: 0.3),
+                            color: isDarkMode
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : AppColors.grey.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDarkMode
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : AppColors.grey.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 2,
                           ),
                         ),
                         filled: true,
-                        fillColor: AppColors.greyLight,
+                        fillColor: isDarkMode
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : AppColors.greyLight,
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -337,14 +612,24 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: AppColors.grey.withValues(alpha: 0.3),
+                        color: isDarkMode
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : AppColors.grey.withValues(alpha: 0.3),
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                      color: AppColors.greyLight,
+                      borderRadius: BorderRadius.circular(12),
+                      color: isDarkMode
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : AppColors.greyLight,
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _roleFilter,
+                        dropdownColor: isDarkMode
+                            ? const Color(0xFF2D2D2D)
+                            : Colors.white,
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
                         items:
                             [
                               'Todos',
@@ -415,8 +700,19 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                 if (users.isEmpty) {
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color:
+                          (isDarkMode ? const Color(0xFF1E1E1E) : Colors.white)
+                              .withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: isDarkMode ? 0.2 : 0.08,
+                          ),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     padding: const EdgeInsets.all(48),
                     child: Center(
@@ -425,14 +721,17 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                           Icon(
                             Icons.people_outline,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: isDarkMode
+                                ? Colors.white30
+                                : Colors.grey[400],
                           ),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'Nenhum usuário encontrado',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black87,
                             ),
                           ),
                         ],
@@ -488,55 +787,113 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                     // Tabela
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color:
+                            (isDarkMode
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.white)
+                                .withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(16),
+                        border: isDarkMode
+                            ? Border.all(
+                                color: Colors.white.withValues(alpha: 0.1),
+                              )
+                            : null,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                            color: Colors.black.withValues(
+                              alpha: isDarkMode ? 0.2 : 0.08,
+                            ),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(
-                            AppColors.primary.withValues(alpha: 0.1),
+                          border: TableBorder.all(
+                            color: isDarkMode
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.grey.withValues(alpha: 0.15),
+                            width: 0.5,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          columns: const [
+                          headingRowColor: WidgetStateProperty.all(
+                            isDarkMode
+                                ? AppColors.primary.withValues(alpha: 0.2)
+                                : AppColors.primary.withValues(alpha: 0.1),
+                          ),
+                          dataRowColor: WidgetStateProperty.resolveWith((
+                            states,
+                          ) {
+                            if (states.contains(WidgetState.hovered)) {
+                              return isDarkMode
+                                  ? Colors.white.withValues(alpha: 0.05)
+                                  : AppColors.greyLight.withValues(alpha: 0.5);
+                            }
+                            return Colors.transparent;
+                          }),
+                          columns: [
                             DataColumn(
                               label: Text(
                                 'Usuário',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
                               ),
                             ),
                             DataColumn(
                               label: Text(
                                 'Email',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
                               ),
                             ),
                             DataColumn(
                               label: Text(
                                 'Departamento',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
                               ),
                             ),
                             DataColumn(
                               label: Text(
                                 'Função',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
                               ),
                             ),
                             DataColumn(
                               label: Text(
                                 'Ações',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
                               ),
                             ),
                           ],
                           rows: users.map((user) {
+                            final textColor = isDarkMode
+                                ? Colors.white70
+                                : Colors.black87;
                             return DataRow(
                               cells: [
                                 DataCell(
@@ -554,12 +911,25 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      Text(user['nome'] ?? 'Sem nome'),
+                                      Text(
+                                        user['nome'] ?? 'Sem nome',
+                                        style: TextStyle(color: textColor),
+                                      ),
                                     ],
                                   ),
                                 ),
-                                DataCell(Text(user['email'] ?? 'N/A')),
-                                DataCell(Text(user['departamento'] ?? 'N/A')),
+                                DataCell(
+                                  Text(
+                                    user['email'] ?? 'N/A',
+                                    style: TextStyle(color: textColor),
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    user['departamento'] ?? 'N/A',
+                                    style: TextStyle(color: textColor),
+                                  ),
+                                ),
                                 DataCell(
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -595,6 +965,18 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                                         onPressed: () =>
                                             _showUserDetailsDialog(user),
                                       ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          size: 20,
+                                          color: AppColors.primary,
+                                        ),
+                                        tooltip: 'Editar usuário',
+                                        onPressed: () => _showEditUserDialog(
+                                          user,
+                                          isDarkMode,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -615,17 +997,24 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
   }
 
   Widget _buildStatCard(String title, int value, IconData icon, Color color) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDarkMode ? Colors.white70 : AppColors.grey;
+
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: cardColor.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16),
+          border: isDarkMode
+              ? Border.all(color: Colors.white.withValues(alpha: 0.1))
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.2 : 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -634,7 +1023,7 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -651,10 +1040,7 @@ class _WebUsuariosScreenState extends State<WebUsuariosScreen> {
                     color: color,
                   ),
                 ),
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 14, color: AppColors.grey),
-                ),
+                Text(title, style: TextStyle(fontSize: 14, color: textColor)),
               ],
             ),
           ],

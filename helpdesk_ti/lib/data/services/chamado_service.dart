@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
 import 'package:helpdesk_ti/features/ti/models/solicitacao.dart';
 import 'package:helpdesk_ti/core/services/notification_service.dart';
+import 'package:helpdesk_ti/core/utils/retry_helper.dart';
 
 /// Serviço responsável por todas as operações relacionadas a Chamados (Tickets)
 ///
@@ -21,40 +23,81 @@ class ChamadoService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final NotificationService _notificationService = NotificationService();
 
+  // ========== LOGGING CONDICIONAL ==========
+  void _log(String message) {
+    if (kDebugMode) print(message);
+  }
+
   // ============ CRIAÇÃO E NUMERAÇÃO ============
 
   /// Gera próximo número sequencial para chamados usando transação atômica
   ///
   /// Utiliza um documento contador no Firestore para garantir que cada
   /// chamado tenha um número único e sequencial. Em caso de erro,
-  /// usa timestamp como fallback.
+  /// busca o maior número existente na coleção.
   ///
   /// Returns: Próximo número disponível para o chamado
   Future<int> gerarProximoNumero() async {
     try {
       final contadorDoc = _firestore.collection('counters').doc('chamados');
 
-      // Usar transação para garantir unicidade
-      return await _firestore.runTransaction<int>((transaction) async {
-        final snapshot = await transaction.get(contadorDoc);
+      // Usar transação com retry para garantir unicidade
+      return await RetryHelper.withTransactionRetry<int>(
+        transaction: () => _firestore.runTransaction<int>((transaction) async {
+          final snapshot = await transaction.get(contadorDoc);
 
-        int novoNumero;
-        if (!snapshot.exists) {
-          // Criar contador se não existir
-          novoNumero = 1;
-          transaction.set(contadorDoc, {'ultimoNumero': novoNumero});
-        } else {
-          // Incrementar contador existente
-          novoNumero = (snapshot.data()?['ultimoNumero'] ?? 0) + 1;
-          transaction.update(contadorDoc, {'ultimoNumero': novoNumero});
-        }
+          int novoNumero;
+          if (!snapshot.exists) {
+            // Criar contador se não existir
+            novoNumero = 1;
+            transaction.set(contadorDoc, {'ultimoNumero': novoNumero});
+          } else {
+            // Incrementar contador existente
+            novoNumero = (snapshot.data()?['ultimoNumero'] ?? 0) + 1;
+            transaction.update(contadorDoc, {'ultimoNumero': novoNumero});
+          }
 
-        return novoNumero;
-      });
+          return novoNumero;
+        }),
+        maxAttempts: 3,
+      );
     } catch (e) {
-      print('❌ Erro ao gerar número: $e');
-      // Fallback: usar timestamp
-      return DateTime.now().millisecondsSinceEpoch % 10000;
+      _log('❌ Erro ao gerar número via transação: $e');
+      // Fallback: buscar o maior número existente na coleção e incrementar
+      return await _gerarNumeroFallback();
+    }
+  }
+
+  /// Fallback para gerar número quando a transação falha
+  /// Busca o maior número existente na coleção tickets e incrementa
+  Future<int> _gerarNumeroFallback() async {
+    try {
+      _log('⚠️ Usando fallback para gerar número...');
+
+      // Buscar chamado com maior número
+      final querySnapshot = await _firestore
+          .collection('tickets')
+          .orderBy('numero', descending: true)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        _log('📊 Nenhum chamado existente, iniciando em 1');
+        return 1;
+      }
+
+      final maiorNumero =
+          querySnapshot.docs.first.data()['numero'] as int? ?? 0;
+      final novoNumero = maiorNumero + 1;
+      _log('📊 Maior número existente: $maiorNumero, novo número: $novoNumero');
+
+      return novoNumero;
+    } catch (e) {
+      _log('❌ Erro no fallback: $e');
+      // Último recurso: retornar número baseado em timestamp único
+      // Isso só acontece se tanto a transação quanto a query falharem
+      return DateTime.now().millisecondsSinceEpoch ~/
+          1000; // Segundos desde epoch
     }
   }
 
@@ -114,8 +157,8 @@ class ChamadoService {
           excludeUserId: chamado.usuarioId,
         );
       } catch (e, stackTrace) {
-        print('❌ ERRO CRÍTICO ao enviar notificação de novo chamado: $e');
-        print('Stack trace: $stackTrace');
+        _log('❌ ERRO CRÍTICO ao enviar notificação de novo chamado: $e');
+        _log('Stack trace: $stackTrace');
         // Não falhar a criação do chamado por causa da notificação
       }
 
@@ -168,12 +211,12 @@ class ChamadoService {
                 final chamado = Chamado.fromMap(doc.data(), doc.id);
                 chamados.add(chamado);
               } catch (e) {
-                print('❌ Erro ao parsear chamado ${doc.id}: $e');
+                _log('❌ Erro ao parsear chamado ${doc.id}: $e');
               }
             }
             return chamados;
           } catch (e) {
-            print('❌ ERRO no map do Stream: $e');
+            _log('❌ ERRO no map do Stream: $e');
             return <Chamado>[];
           }
         });
@@ -315,7 +358,7 @@ class ChamadoService {
         'adminNome': adminNome,
         'dataAtualizacao': FieldValue.serverTimestamp(),
       });
-      print('✅ Admin $adminNome atribuído ao chamado $chamadoId');
+      _log('✅ Admin $adminNome atribuído ao chamado $chamadoId');
     } catch (e) {
       throw 'Erro ao atribuir admin: $e';
     }
@@ -331,7 +374,7 @@ class ChamadoService {
         'prioridade': prioridade,
         'dataAtualizacao': FieldValue.serverTimestamp(),
       });
-      print('✅ Prioridade do chamado $chamadoId atualizada para $prioridade');
+      _log('✅ Prioridade do chamado $chamadoId atualizada para $prioridade');
     } catch (e) {
       throw 'Erro ao atualizar prioridade: $e';
     }
@@ -352,7 +395,7 @@ class ChamadoService {
       final bytesOriginais = await imageFile.readAsBytes();
       final tamanhoOriginal = bytesOriginais.length;
 
-      print(
+      _log(
         '📸 Imagem original: ${(tamanhoOriginal / 1024 / 1024).toStringAsFixed(2)} MB',
       );
 
@@ -368,14 +411,14 @@ class ChamadoService {
       final tamanhoComprimido = resultado.length;
       final reducao = ((1 - tamanhoComprimido / tamanhoOriginal) * 100);
 
-      print(
+      _log(
         '✅ Imagem comprimida: ${(tamanhoComprimido / 1024 / 1024).toStringAsFixed(2)} MB',
       );
-      print('📉 Redução: ${reducao.toStringAsFixed(1)}%');
+      _log('📉 Redução: ${reducao.toStringAsFixed(1)}%');
 
       return resultado;
     } catch (e) {
-      print('⚠️ Erro ao comprimir, usando imagem original: $e');
+      _log('⚠️ Erro ao comprimir, usando imagem original: $e');
       // Se falhar, retorna a imagem original
       return await imageFile.readAsBytes();
     }
@@ -398,14 +441,14 @@ class ChamadoService {
       final storageRef = _storage.ref().child('chamados/$chamadoId/$fileName');
 
       // ✅ NOVO: Comprimir imagem antes de enviar
-      print('🔄 Comprimindo imagem antes do upload...');
+      _log('🔄 Comprimindo imagem antes do upload...');
       final bytesComprimidos = await _comprimirImagem(imageFile);
 
       // Enviar bytes comprimidos
       await storageRef.putData(bytesComprimidos);
 
       final downloadUrl = await storageRef.getDownloadURL();
-      print('✅ Imagem enviada: $downloadUrl');
+      _log('✅ Imagem enviada: $downloadUrl');
       return downloadUrl;
     } catch (e) {
       throw 'Erro ao fazer upload da imagem: $e';
@@ -464,11 +507,11 @@ class ChamadoService {
           contentType = 'application/octet-stream';
       }
 
-      print('📄 Enviando arquivo: $fileName');
-      print(
+      _log('📄 Enviando arquivo: $fileName');
+      _log(
         '📊 Tamanho: ${(fileBytes.length / 1024 / 1024).toStringAsFixed(2)} MB',
       );
-      print('🏷️ Tipo: $contentType');
+      _log('🏷️ Tipo: $contentType');
 
       // Fazer upload com metadata
       final metadata = SettableMetadata(
@@ -482,11 +525,11 @@ class ChamadoService {
       await storageRef.putData(fileBytes, metadata);
 
       final downloadUrl = await storageRef.getDownloadURL();
-      print('✅ Arquivo enviado: $downloadUrl');
+      _log('✅ Arquivo enviado: $downloadUrl');
 
       return downloadUrl;
     } catch (e) {
-      print('❌ Erro ao fazer upload do arquivo: $e');
+      _log('❌ Erro ao fazer upload do arquivo: $e');
       throw 'Erro ao fazer upload do arquivo: $e';
     }
   }
@@ -528,8 +571,8 @@ class ChamadoService {
       };
 
       await _firestore.collection('comentarios').add(comentarioData);
-      print('✅ Comentário adicionado ao chamado $chamadoId');
-      print('📝 Dados salvos: $comentarioData');
+      _log('✅ Comentário adicionado ao chamado $chamadoId');
+      _log('📝 Dados salvos: $comentarioData');
 
       // 🔔 Enviar notificação para partes envolvidas
       final chamadoDoc = await _firestore
@@ -568,7 +611,7 @@ class ChamadoService {
         }
       }
     } catch (e) {
-      print('❌ Erro ao adicionar comentário: $e');
+      _log('❌ Erro ao adicionar comentário: $e');
       throw 'Erro ao adicionar comentário: $e';
     }
   }
@@ -589,7 +632,7 @@ class ChamadoService {
         'comentarios': FieldValue.arrayUnion([comentario]),
         'dataAtualizacao': FieldValue.serverTimestamp(),
       });
-      print('✅ Comentário adicionado ao chamado $chamadoId');
+      _log('✅ Comentário adicionado ao chamado $chamadoId');
     } catch (e) {
       throw 'Erro ao adicionar comentário: $e';
     }
@@ -607,7 +650,7 @@ class ChamadoService {
   ) async {
     try {
       await _firestore.collection('tickets').doc(chamadoId).update(dados);
-      print('✅ Chamado $chamadoId atualizado');
+      _log('✅ Chamado $chamadoId atualizado');
     } catch (e) {
       throw 'Erro ao atualizar chamado: $e';
     }
@@ -624,7 +667,7 @@ class ChamadoService {
           .collection('tickets')
           .doc(chamado.id)
           .update(chamado.toMap());
-      print('✅ Chamado completo ${chamado.id} atualizado');
+      _log('✅ Chamado completo ${chamado.id} atualizado');
     } catch (e) {
       throw 'Erro ao atualizar chamado completo: $e';
     }
@@ -668,7 +711,7 @@ class ChamadoService {
         'fechados': fechados,
       };
     } catch (e) {
-      print('❌ Erro ao buscar stats do usuário: $e');
+      _log('❌ Erro ao buscar stats do usuário: $e');
       return {'total': 0, 'abertos': 0, 'emAndamento': 0, 'fechados': 0};
     }
   }
@@ -721,7 +764,7 @@ class ChamadoService {
         'chamadosPorSetor': porSetor,
       };
     } catch (e) {
-      print('❌ Erro ao buscar stats admin: $e');
+      _log('❌ Erro ao buscar stats admin: $e');
       return {};
     }
   }
@@ -743,7 +786,7 @@ class ChamadoService {
   /// Throws: Exception se houver erro na exclusão
   Future<void> deletarChamado(String chamadoId) async {
     try {
-      print('🗑️ Iniciando exclusão do chamado TI: $chamadoId');
+      _log('🗑️ Iniciando exclusão do chamado TI: $chamadoId');
 
       // 1. Buscar chamado para verificar se existe
       final chamadoDoc = await _firestore
@@ -757,7 +800,7 @@ class ChamadoService {
 
       // 2. Deletar subcoleção de comentários
       try {
-        print('🗑️ Deletando comentários...');
+        _log('🗑️ Deletando comentários...');
         final comentariosSnapshot = await _firestore
             .collection('comentarios')
             .where('chamadoId', isEqualTo: chamadoId)
@@ -769,14 +812,14 @@ class ChamadoService {
           batch.delete(doc.reference);
         }
         await batch.commit();
-        print('✅ ${comentariosSnapshot.docs.length} comentários deletados');
+        _log('✅ ${comentariosSnapshot.docs.length} comentários deletados');
       } catch (e) {
-        print('⚠️ Erro ao deletar comentários: $e');
+        _log('⚠️ Erro ao deletar comentários: $e');
       }
 
       // 3. Deletar subcoleção de avaliações
       try {
-        print('🗑️ Deletando avaliações...');
+        _log('🗑️ Deletando avaliações...');
         final avaliacoesSnapshot = await _firestore
             .collection('avaliacoes')
             .where('chamadoId', isEqualTo: chamadoId)
@@ -787,29 +830,29 @@ class ChamadoService {
           batch.delete(doc.reference);
         }
         await batch.commit();
-        print('✅ ${avaliacoesSnapshot.docs.length} avaliações deletadas');
+        _log('✅ ${avaliacoesSnapshot.docs.length} avaliações deletadas');
       } catch (e) {
-        print('⚠️ Erro ao deletar avaliações: $e');
+        _log('⚠️ Erro ao deletar avaliações: $e');
       }
 
       // 4. Deletar arquivos do Storage
       try {
-        print('🗑️ Deletando arquivos do Storage...');
+        _log('🗑️ Deletando arquivos do Storage...');
 
         // Deletar pasta completa do chamado
         await _deletarPastaStorage('tickets/$chamadoId');
 
-        print('✅ Arquivos do Storage deletados');
+        _log('✅ Arquivos do Storage deletados');
       } catch (e) {
-        print('⚠️ Erro ao deletar arquivos do Storage: $e');
+        _log('⚠️ Erro ao deletar arquivos do Storage: $e');
       }
 
       // 5. Deletar documento do chamado
       await _firestore.collection('tickets').doc(chamadoId).delete();
 
-      print('✅ Chamado TI $chamadoId deletado completamente');
+      _log('✅ Chamado TI $chamadoId deletado completamente');
     } catch (e) {
-      print('❌ Erro ao deletar chamado TI: $e');
+      _log('❌ Erro ao deletar chamado TI: $e');
       throw 'Erro ao deletar chamado: $e';
     }
   }
@@ -822,7 +865,7 @@ class ChamadoService {
       // Deletar todos os arquivos
       for (final item in listResult.items) {
         await item.delete();
-        print('   🗑️ Arquivo deletado: ${item.name}');
+        _log('   🗑️ Arquivo deletado: ${item.name}');
       }
 
       // Recursivamente deletar subpastas
@@ -832,7 +875,7 @@ class ChamadoService {
     } catch (e) {
       // Ignora erro se pasta não existir
       if (!e.toString().contains('object-not-found')) {
-        print('   ⚠️ Erro ao deletar pasta $caminho: $e');
+        _log('   ⚠️ Erro ao deletar pasta $caminho: $e');
       }
     }
   }
@@ -853,7 +896,7 @@ class ChamadoService {
       }
 
       await batch.commit();
-      print('✅ Todos os ${snapshot.docs.length} chamados foram deletados');
+      _log('✅ Todos os ${snapshot.docs.length} chamados foram deletados');
       return snapshot.docs.length;
     } catch (e) {
       throw 'Erro ao deletar todos os chamados: $e';
@@ -959,11 +1002,11 @@ class ChamadoService {
           .reversed
           .toList();
 
-      print('📄 Página carregada: ${comentarios.length} comentários');
+      _log('📄 Página carregada: ${comentarios.length} comentários');
       if (temMais) {
-        print('➡️ Há mais comentários para carregar');
+        _log('➡️ Há mais comentários para carregar');
       } else {
-        print('✅ Todos os comentários carregados');
+        _log('✅ Todos os comentários carregados');
       }
 
       return {
@@ -974,7 +1017,7 @@ class ChamadoService {
         'temMais': temMais,
       };
     } catch (e) {
-      print('❌ Erro ao buscar comentários paginados: $e');
+      _log('❌ Erro ao buscar comentários paginados: $e');
       throw 'Erro ao buscar comentários paginados: $e';
     }
   }
@@ -995,10 +1038,10 @@ class ChamadoService {
           .get();
 
       final total = snapshot.count ?? 0;
-      print('💬 Total de comentários: $total');
+      _log('💬 Total de comentários: $total');
       return total;
     } catch (e) {
-      print('❌ Erro ao contar comentários: $e');
+      _log('❌ Erro ao contar comentários: $e');
       return 0;
     }
   }
@@ -1038,7 +1081,7 @@ class ChamadoService {
         'solicitacoesRejeitadas': rejeitadas,
       };
     } catch (e) {
-      print('❌ Erro ao buscar stats manager: $e');
+      _log('❌ Erro ao buscar stats manager: $e');
       return {};
     }
   }
@@ -1103,12 +1146,12 @@ class ChamadoService {
       // Criar chamado
       final chamadoId = await criarChamado(chamado);
 
-      print(
+      _log(
         '✅ Chamado $chamadoId criado a partir da solicitação ${solicitacao.id}',
       );
       return chamadoId;
     } catch (e) {
-      print('❌ Erro ao criar chamado de solicitação: $e');
+      _log('❌ Erro ao criar chamado de solicitação: $e');
       throw 'Erro ao criar chamado de solicitação: $e';
     }
   }
@@ -1186,7 +1229,7 @@ class ChamadoService {
 
       return contadores;
     } catch (e) {
-      print('❌ Erro ao buscar chamados por prioridade: $e');
+      _log('❌ Erro ao buscar chamados por prioridade: $e');
       return {'critica': 0, 'alta': 0, 'media': 0, 'baixa': 0};
     }
   }

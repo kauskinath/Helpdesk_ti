@@ -3,14 +3,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'navigation_service.dart';
 import 'package:helpdesk_ti/firebase_options.dart';
 
 /// Serviço de Notificações Push usando Firebase Cloud Messaging
 /// SOLUÇÃO GRATUITA: Notificações via TÓPICOS FCM (sem Cloud Functions, sem HTTP API)
 ///
-/// **MELHORIAS v2.0:**
+/// **MELHORIAS v3.0:**
+/// - ✅ Singleton pattern para evitar múltiplas instâncias
 /// - ✅ Navegação funcional com NavigationService
 /// - ✅ Feedback visual em foreground (overlay animado)
 /// - ✅ Auto-atualização de token completa
@@ -18,7 +19,14 @@ import 'package:helpdesk_ti/firebase_options.dart';
 /// - ✅ Prevenção de duplicação
 /// - ✅ Badges com contadores
 /// - ✅ Categorização por tipo (cores/ícones)
+/// - ✅ Logs condicionais (apenas em debug)
 class NotificationService {
+  // ========== SINGLETON PATTERN ==========
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
+
+  // ========== PROPRIEDADES ==========
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
@@ -27,13 +35,26 @@ class NotificationService {
   String? _fcmToken;
   String? _currentUserId; // Armazenar userId para auto-atualização de token
   final Set<String> _processedNotificationIds = {}; // Prevenir duplicação
+  bool _isInitialized = false; // Evitar inicialização duplicada
 
   String? get fcmToken => _fcmToken;
+  bool get isInitialized => _isInitialized;
+
+  // ========== LOGGING CONDICIONAL ==========
+  void _log(String message) {
+    if (kDebugMode) print(message);
+  }
 
   /// Inicializar o serviço de notificações
   Future<void> initialize() async {
+    // Evitar inicialização duplicada
+    if (_isInitialized) {
+      _log('ℹ️ NotificationService já inicializado');
+      return;
+    }
+
     try {
-      // Solicitar permissões (iOS)
+      // Solicitar permissões
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -45,15 +66,24 @@ class NotificationService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        _log('⚠️ Permissões de notificação negadas');
         return;
       }
 
+      _log(
+        '✅ Permissões de notificação concedidas: ${settings.authorizationStatus}',
+      );
+
       // Na web, não deletamos o token (causa erro)
       if (!kIsWeb) {
-        // NOVO: Forçar refresh do token para garantir que seja válido
+        // Forçar refresh do token para garantir que seja válido
         // Isso resolve problemas de tokens expirados/inválidos
-        await _messaging.deleteToken();
-        print('🔄 Token antigo deletado, gerando novo...');
+        try {
+          await _messaging.deleteToken();
+          _log('🔄 Token antigo deletado, gerando novo...');
+        } catch (e) {
+          _log('⚠️ Não foi possível deletar token antigo: $e');
+        }
       }
 
       // Obter novo token FCM (sempre válido)
@@ -64,17 +94,17 @@ class NotificationService {
               : null,
         );
         if (_fcmToken != null) {
-          print('✅ Token FCM gerado: ${_fcmToken?.substring(0, 20)}...');
+          _log('✅ Token FCM gerado: ${_fcmToken?.substring(0, 20)}...');
         } else {
-          print(
+          _log(
             '⚠️ Token FCM é null (pode ser normal na web sem VAPID key configurada)',
           );
         }
       } catch (e) {
-        print('⚠️ Não foi possível obter token FCM: $e');
+        _log('⚠️ Não foi possível obter token FCM: $e');
         // Na web, se falhar, continuar sem notificações push
         if (kIsWeb) {
-          print('📱 Continuando sem notificações push na web');
+          _log('📱 Continuando sem notificações push na web');
           return;
         }
       }
@@ -90,7 +120,7 @@ class NotificationService {
       // Atualizar token quando mudar (MELHORADO)
       _messaging.onTokenRefresh.listen((newToken) async {
         _fcmToken = newToken;
-        print(
+        _log(
           '🔄 Token FCM atualizado automaticamente: ${newToken.substring(0, 20)}...',
         );
 
@@ -99,8 +129,11 @@ class NotificationService {
           await _updateUserToken(newToken, _currentUserId!);
         }
       });
+
+      _isInitialized = true;
+      _log('✅ NotificationService inicializado com sucesso');
     } catch (e) {
-      print('❌ Erro ao inicializar notificações: $e');
+      _log('❌ Erro ao inicializar notificações: $e');
     }
   }
 
@@ -146,8 +179,8 @@ class NotificationService {
         >()
         ?.createNotificationChannel(androidChannel);
 
-    print('✅ Canal de notificação ATUALIZADO com alta prioridade');
-    print(
+    _log('✅ Canal de notificação ATUALIZADO com alta prioridade');
+    _log(
       '📢 Nome do canal: "HelpDesk Notificações" (mesmo que você vê nas configurações)',
     );
   }
@@ -280,13 +313,13 @@ class NotificationService {
       switch (data['tipo']) {
         case 'novo_chamado':
           NavigationService.navigateToFilaTecnica();
-          print('🧭 Navegando para Fila Técnica');
+          _log('🧭 Navegando para Fila Técnica');
           break;
 
         case 'chamado_atualizado':
           if (data.containsKey('chamadoId')) {
             NavigationService.navigateToChamadoDetails(data['chamadoId']);
-            print('🧭 Navegando para Chamado: ${data['chamadoId']}');
+            _log('🧭 Navegando para Chamado: ${data['chamadoId']}');
           } else {
             NavigationService.navigateToHome();
           }
@@ -294,30 +327,30 @@ class NotificationService {
 
         case 'solicitacao_pendente':
           NavigationService.navigateToAprovarSolicitacoes();
-          print('🧭 Navegando para Aprovar Solicitações');
+          _log('🧭 Navegando para Aprovar Solicitações');
           break;
 
         case 'solicitacao_aprovada':
         case 'solicitacao_reprovada':
           NavigationService.navigateToHistoricoSolicitacoes();
-          print('🧭 Navegando para Histórico de Solicitações');
+          _log('🧭 Navegando para Histórico de Solicitações');
           break;
 
         default:
           NavigationService.navigateToHome();
-          print('🧭 Navegando para Home (tipo desconhecido: ${data['tipo']})');
+          _log('🧭 Navegando para Home (tipo desconhecido: ${data['tipo']})');
       }
     } else {
       // Se não tem tipo, vai para home
       NavigationService.navigateToHome();
-      print('🧭 Navegando para Home (sem tipo especificado)');
+      _log('🧭 Navegando para Home (sem tipo especificado)');
     }
   }
 
   /// Iniciar listener de notificações em tempo real (MELHORADO - COM PREVENÇÃO DE DUPLICAÇÃO)
   /// Monitora a coleção 'notifications' e dispara notificações locais
   void startNotificationListener(String userId) {
-    print('🎧 Listener de notificações INICIADO para userId: $userId');
+    _log('🎧 Listener de notificações INICIADO para userId: $userId');
 
     // Limpar IDs processados ao iniciar
     _processedNotificationIds.clear();
@@ -332,7 +365,7 @@ class NotificationService {
         .get()
         .then((snapshot) {
           if (snapshot.docs.isNotEmpty) {
-            print(
+            _log(
               '📬 Encontradas ${snapshot.docs.length} notificações não lidas ao abrir app',
             );
             for (var doc in snapshot.docs) {
@@ -340,12 +373,12 @@ class NotificationService {
 
               // Prevenir duplicação
               if (_processedNotificationIds.contains(docId)) {
-                print('⏭️ Notificação $docId já processada, pulando...');
+                _log('⏭️ Notificação $docId já processada, pulando...');
                 continue;
               }
 
               final data = doc.data();
-              print('   📩 Mostrando notificação: ${data['title']}');
+              _log('   📩 Mostrando notificação: ${data['title']}');
               _showLocalNotification(
                 title: data['title'] as String,
                 body: data['body'] as String,
@@ -359,11 +392,11 @@ class NotificationService {
               doc.reference.update({'read': true});
             }
           } else {
-            print('✅ Nenhuma notificação pendente ao abrir app');
+            _log('✅ Nenhuma notificação pendente ao abrir app');
           }
         })
         .catchError((error) {
-          print('❌ Erro ao buscar notificações antigas: $error');
+          _log('❌ Erro ao buscar notificações antigas: $error');
         });
 
     // Depois, iniciar listener para novas notificações em tempo real
@@ -381,13 +414,13 @@ class NotificationService {
 
                 // Prevenir duplicação
                 if (_processedNotificationIds.contains(docId)) {
-                  print('⏭️ Notificação $docId já processada, pulando...');
+                  _log('⏭️ Notificação $docId já processada, pulando...');
                   continue;
                 }
 
                 final data = change.doc.data();
                 if (data != null) {
-                  print('🔔 Nova notificação: ${data['title']}');
+                  _log('🔔 Nova notificação: ${data['title']}');
                   _showLocalNotification(
                     title: data['title'] as String,
                     body: data['body'] as String,
@@ -404,7 +437,7 @@ class NotificationService {
             }
           },
           onError: (error) {
-            print('❌ Erro no listener de notificações: $error');
+            _log('❌ Erro no listener de notificações: $error');
           },
         );
   }
@@ -451,10 +484,10 @@ class NotificationService {
 
       final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      print('🔔 DEBUG: Preparando notificação...');
-      print('   Canal: helpdesk_channel');
-      print('   Título: $title');
-      print('   Corpo: $body');
+      _log('🔔 DEBUG: Preparando notificação...');
+      _log('   Canal: helpdesk_channel');
+      _log('   Título: $title');
+      _log('   Corpo: $body');
 
       await _localNotifications.show(
         notificationId,
@@ -464,11 +497,11 @@ class NotificationService {
         payload: data?.toString(),
       );
 
-      print(
+      _log(
         '✅ DEBUG: Notificação local disparada - ID: $notificationId, Título: $title',
       );
     } catch (e) {
-      print('❌ Erro ao disparar notificação local: $e');
+      _log('❌ Erro ao disparar notificação local: $e');
     }
   }
 
@@ -478,16 +511,16 @@ class NotificationService {
     _currentUserId = userId;
 
     if (_fcmToken == null) {
-      print('⚠️ Token FCM é null, tentando gerar novo...');
+      _log('⚠️ Token FCM é null, tentando gerar novo...');
       // Tentar gerar um novo token
       await _messaging.deleteToken();
       _fcmToken = await _messaging.getToken();
 
       if (_fcmToken == null) {
-        print('❌ Não foi possível gerar token FCM');
+        _log('❌ Não foi possível gerar token FCM');
         return;
       }
-      print('✅ Novo token gerado: ${_fcmToken!.substring(0, 20)}...');
+      _log('✅ Novo token gerado: ${_fcmToken!.substring(0, 20)}...');
     }
 
     try {
@@ -496,12 +529,12 @@ class NotificationService {
       final oldToken = userDoc.data()?['fcmToken'] as String?;
 
       if (oldToken == _fcmToken) {
-        print('ℹ️ Token FCM não mudou, sem necessidade de atualizar');
+        _log('ℹ️ Token FCM não mudou, sem necessidade de atualizar');
         startNotificationListener(userId);
         return;
       }
 
-      print(
+      _log(
         '💾 Salvando token FCM: ${_fcmToken!.substring(0, 20)}... para userId: $userId',
       );
 
@@ -511,10 +544,10 @@ class NotificationService {
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      print('✅ Token FCM salvo com sucesso no Firestore!');
+      _log('✅ Token FCM salvo com sucesso no Firestore!');
       startNotificationListener(userId);
     } catch (e) {
-      print('❌ Erro ao salvar token FCM: $e');
+      _log('❌ Erro ao salvar token FCM: $e');
     }
   }
 
@@ -525,9 +558,9 @@ class NotificationService {
         'fcmToken': newToken,
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
       });
-      print('✅ Token FCM atualizado no Firestore para userId: $userId');
+      _log('✅ Token FCM atualizado no Firestore para userId: $userId');
     } catch (e) {
-      print('❌ Erro ao atualizar token FCM: $e');
+      _log('❌ Erro ao atualizar token FCM: $e');
     }
   }
 
@@ -539,16 +572,21 @@ class NotificationService {
         'fcmTokenUpdatedAt': FieldValue.delete(),
       });
     } catch (e) {
-      print('❌ Erro ao remover token FCM: $e');
+      _log('❌ Erro ao remover token FCM: $e');
     }
   }
 
   /// Inscrever em tópico (útil para notificações em grupo)
   Future<void> subscribeToTopic(String topic) async {
+    // Na web, tópicos não são suportados pelo FCM
+    if (kIsWeb) {
+      _log('ℹ️ subscribeToTopic não suportado na web (limitação FCM)');
+      return;
+    }
     try {
       await _messaging.subscribeToTopic(topic);
     } catch (e) {
-      print('❌ Erro ao inscrever no tópico $topic: $e');
+      _log('❌ Erro ao inscrever no tópico $topic: $e');
     }
   }
 
@@ -557,7 +595,7 @@ class NotificationService {
     try {
       await _messaging.unsubscribeFromTopic(topic);
     } catch (e) {
-      print('❌ Erro ao desinscrever do tópico $topic: $e');
+      _log('❌ Erro ao desinscrever do tópico $topic: $e');
     }
   }
 
@@ -583,12 +621,12 @@ class NotificationService {
           .where('role', whereIn: roles)
           .get();
 
-      print(
+      _log(
         '🔍 DEBUG: Encontrados ${usersQuery.docs.length} usuários com roles: $roles',
       );
 
       if (usersQuery.docs.isEmpty) {
-        print('⚠️ AVISO: Nenhum usuário encontrado com roles: $roles');
+        _log('⚠️ AVISO: Nenhum usuário encontrado com roles: $roles');
         return;
       }
 
@@ -599,7 +637,7 @@ class NotificationService {
         final userRole = userData['role'] ?? 'Sem role';
 
         if (excludeUserId != null && doc.id == excludeUserId) {
-          print(
+          _log(
             '⏭️ Ignorando usuário: $userName (userId: ${doc.id}) - é o criador do chamado',
           );
           continue;
@@ -607,19 +645,19 @@ class NotificationService {
 
         final token = userData['fcmToken'] as String?;
         if (token != null && token.isNotEmpty) {
-          print(
+          _log(
             '✅ Token encontrado para: $userName ($userRole) - ${token.substring(0, 20)}...',
           );
           tokens.add(token);
         } else {
-          print('❌ SEM TOKEN: $userName ($userRole, userId: ${doc.id})');
+          _log('❌ SEM TOKEN: $userName ($userRole, userId: ${doc.id})');
         }
       }
 
-      print('🎫 DEBUG: Coletados ${tokens.length} tokens válidos');
+      _log('🎫 DEBUG: Coletados ${tokens.length} tokens válidos');
 
       if (tokens.isEmpty) {
-        print('⚠️ AVISO: Nenhum token FCM válido encontrado!');
+        _log('⚠️ AVISO: Nenhum token FCM válido encontrado!');
         return;
       }
 
@@ -630,8 +668,8 @@ class NotificationService {
         data: data,
       );
     } catch (e, stackTrace) {
-      print('❌ ERRO CRÍTICO em sendNotificationToRoles: $e');
-      print(stackTrace);
+      _log('❌ ERRO CRÍTICO em sendNotificationToRoles: $e');
+      _log(stackTrace.toString());
       rethrow;
     }
   }
@@ -669,7 +707,7 @@ class NotificationService {
         data: data,
       );
     } catch (e) {
-      print('❌ Erro ao enviar notificação para usuário: $e');
+      _log('❌ Erro ao enviar notificação para usuário: $e');
     }
   }
 
@@ -718,7 +756,7 @@ class NotificationService {
         data: data,
       );
     } catch (e) {
-      print('❌ Erro ao enviar notificação: $e');
+      _log('❌ Erro ao enviar notificação: $e');
     }
   }
 
@@ -752,20 +790,25 @@ class NotificationService {
               'read': false,
               'timestamp': FieldValue.serverTimestamp(),
             });
-            print(
+            _log(
               '✅ DEBUG: Notificação salva no Firestore para $userName ($userId)',
             );
           }
         } catch (e) {
-          print('❌ Erro ao processar token de notificação: $e');
+          _log('❌ Erro ao processar token de notificação: $e');
         }
       }
     } catch (e, stackTrace) {
-      print('❌ EXCEÇÃO em _sendFCMNotification: $e');
-      print(stackTrace);
+      _log('❌ EXCEÇÃO em _sendFCMNotification: $e');
+      _log(stackTrace.toString());
       rethrow;
     }
   }
+}
+
+// ========== FUNÇÃO DE LOG PARA HANDLERS TOP-LEVEL ==========
+void _logBackground(String message) {
+  if (kDebugMode) print(message);
 }
 
 /// Handler para mensagens em background MELHORADO (função top-level)
@@ -776,7 +819,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   final title = message.notification?.title ?? 'Nova notificação';
   final body = message.notification?.body ?? '';
-  print('🌙 Notificação em background: $title');
+  _logBackground('🌙 Notificação em background: $title');
 
   // Salvar no Firestore para exibir quando app abrir
   try {
@@ -791,10 +834,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         'timestamp': FieldValue.serverTimestamp(),
         'receivedInBackground': true,
       });
-      print('✅ Notificação salva no Firestore para exibição posterior');
+      _logBackground(
+        '✅ Notificação salva no Firestore para exibição posterior',
+      );
     }
   } catch (e) {
-    print('❌ Erro ao salvar notificação em background: $e');
+    _logBackground('❌ Erro ao salvar notificação em background: $e');
   }
 }
 

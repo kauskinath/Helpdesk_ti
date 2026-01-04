@@ -235,13 +235,6 @@ class _ManutencaoCriarChamadoAdminScreenState
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Chamado criado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
         // PASSO 4: Se NÃO tem orçamento, redirecionar para atribuir executor
         if (!_temOrcamento) {
           // Buscar o chamado criado
@@ -249,27 +242,44 @@ class _ManutencaoCriarChamadoAdminScreenState
             chamadoId,
           );
 
-          // Abrir tela de atribuir executor (substituir esta tela)
+          if (!mounted) return;
+
+          // Mostrar snackbar ANTES de navegar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Chamado criado! Agora atribua um executor.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // Aguardar um pouco para o usuário ver a mensagem
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Usar push ao invés de pushReplacement para evitar tela preta
           if (mounted) {
-            final resultado = await Navigator.pushReplacement(
+            // Fechar a tela atual primeiro
+            Navigator.pop(context, true);
+
+            // Depois abrir a tela de atribuir executor
+            Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) =>
                     ManutencaoAtribuirExecutorScreen(chamado: chamadoCriado),
               ),
             );
-
-            if (resultado == true && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('✅ Executor atribuído com sucesso!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
           }
         } else {
-          // Se tem orçamento, apenas voltar
+          // Se tem orçamento, mostrar mensagem e voltar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '✅ Chamado criado com sucesso! Aguardando aprovação do gerente.',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
           Navigator.pop(context, true);
         }
       }

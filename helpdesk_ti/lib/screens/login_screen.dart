@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
+import 'package:helpdesk_ti/core/services/secure_storage_service.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/utils/rate_limiter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +19,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _secureStorage = SecureStorageService();
+  final _rateLimiter = AuthRateLimiter();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = false;
@@ -36,39 +39,47 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Carregar credenciais salvas
+  // Carregar credenciais salvas de forma segura
   Future<void> _loadSavedCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedEmail = prefs.getString('saved_email');
-    final savedPassword = prefs.getString('saved_password');
-    final rememberMe = prefs.getBool('remember_me') ?? false;
+    final credentials = await _secureStorage.loadCredentials();
+    final rememberMe = credentials['rememberMe'] as bool? ?? false;
+    final savedEmail = credentials['email'] as String?;
+    final savedPassword = credentials['password'] as String?;
 
-    if (rememberMe && savedEmail != null && savedPassword != null) {
+    if (rememberMe && savedEmail != null) {
       setState(() {
         _emailController.text = savedEmail;
-        _passwordController.text = savedPassword;
+        if (savedPassword != null) {
+          _passwordController.text = savedPassword;
+        }
         _rememberMe = true;
       });
     }
   }
 
-  // Salvar ou limpar credenciais
+  // Salvar ou limpar credenciais de forma segura
   Future<void> _saveCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    if (_rememberMe) {
-      await prefs.setString('saved_email', _emailController.text.trim());
-      await prefs.setString('saved_password', _passwordController.text);
-      await prefs.setBool('remember_me', true);
-    } else {
-      await prefs.remove('saved_email');
-      await prefs.remove('saved_password');
-      await prefs.setBool('remember_me', false);
-    }
+    await _secureStorage.saveCredentials(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      rememberMe: _rememberMe,
+    );
   }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final email = _emailController.text.trim();
+
+    // Verificar rate limit
+    if (!_rateLimiter.canAttemptLogin(email)) {
+      final remaining = _rateLimiter.getLoginBlockTimeRemaining(email);
+      setState(() {
+        _errorMessage =
+            'Muitas tentativas de login. Tente novamente em ${remaining?.inMinutes ?? 30} minutos.';
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -77,10 +88,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final authService = context.read<AuthService>();
-      await authService.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      await authService.login(email: email, password: _passwordController.text);
+
+      // Login bem-sucedido - resetar rate limiter
+      _rateLimiter.resetLoginAttempts(email);
 
       // Salvar credenciais se "Lembrar-me" estiver marcado
       await _saveCredentials();
@@ -89,9 +100,23 @@ class _LoginScreenState extends State<LoginScreen> {
       // O AuthWrapper detectará a mudança e navegará automaticamente
       // Resetar o loading causaria conflito visual com a navegação
     } catch (e) {
+      // Registrar tentativa falha
+      final canContinue = _rateLimiter.recordFailedLogin(email);
+      final attemptsRemaining = _rateLimiter.getLoginAttemptsRemaining(email);
+
       if (!mounted) return;
+
+      String errorMsg = e.toString().replaceAll('Exception: ', '');
+      if (!canContinue) {
+        final remaining = _rateLimiter.getLoginBlockTimeRemaining(email);
+        errorMsg =
+            'Conta bloqueada temporariamente. Tente novamente em ${remaining?.inMinutes ?? 30} minutos.';
+      } else if (attemptsRemaining <= 2) {
+        errorMsg += '\n⚠️ $attemptsRemaining tentativas restantes.';
+      }
+
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = errorMsg;
         _isLoading = false;
       });
     }

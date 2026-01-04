@@ -138,7 +138,8 @@ class _ManutencaoUserDashboard extends StatelessWidget {
               icon: Icons.exit_to_app,
               label: 'Sair do Sistema',
               value: 'sair',
-              onTap: (context) => context.read<AuthService>().logout(),
+              onTap: (context) async =>
+                  await context.read<AuthService>().logout(),
             ),
           ],
         ),

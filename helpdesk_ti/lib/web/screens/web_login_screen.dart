@@ -38,17 +38,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
         password: _passwordController.text,
       );
 
-      if (!mounted) return;
-
-      if (!authService.isAdmin) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Acesso negado: apenas administradores'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        await authService.logout();
-      }
+      // Login bem-sucedido - não precisa fazer mais nada
+      // O WebAuthWrapper vai redirecionar para a tela correta
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,15 +58,23 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
     return Scaffold(
       body: Container(
-        // Wallpaper igual ao mobile
+        // Gradiente profissional para web
         decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(
-              isDarkMode
-                  ? 'assets/images/wallpaper_dark.png'
-                  : 'assets/images/wallpaper_light.png',
-            ),
-            fit: BoxFit.cover,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDarkMode
+                ? [
+                    const Color(0xFF0D1B2A),
+                    const Color(0xFF1B263B),
+                    const Color(0xFF415A77),
+                  ]
+                : [
+                    const Color(0xFF667eea),
+                    const Color(0xFF764ba2),
+                    const Color(0xFFf093fb),
+                  ],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: SafeArea(
@@ -182,22 +181,12 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
                   // Subtítulo
                   Text(
-                    'Painel Administrativo',
+                    'Portal de Suporte',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDarkMode
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : Colors.black87.withValues(alpha: 0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       fontWeight: FontWeight.w400,
-                      shadows: isDarkMode
-                          ? null
-                          : [
-                              Shadow(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                offset: const Offset(0, 1),
-                                blurRadius: 6,
-                              ),
-                            ],
+                      letterSpacing: 0.5,
                     ),
                   ),
 
@@ -395,30 +384,27 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
                           const SizedBox(height: 24),
 
-                          // Aviso admin
+                          // Informação de acesso
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.amber.withValues(alpha: 0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.amber.withValues(alpha: 0.3),
-                              ),
                             ),
-                            child: Row(
+                            child: const Row(
                               children: [
                                 Icon(
-                                  Icons.admin_panel_settings,
+                                  Icons.security,
                                   size: 20,
-                                  color: Colors.amber[700],
+                                  color: AppColors.primary,
                                 ),
-                                const SizedBox(width: 12),
+                                SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    'Acesso restrito a administradores',
+                                    'Acesso seguro ao portal de suporte',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Colors.amber[900],
+                                      color: AppColors.primary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),

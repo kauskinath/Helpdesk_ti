@@ -123,7 +123,7 @@ class _ManutencaoDashboardAdminScreenState
                         borderRadius: BorderRadius.circular(16),
                       ),
                       offset: const Offset(0, 50),
-                      onSelected: (String value) {
+                      onSelected: (String value) async {
                         switch (value) {
                           case 'busca_avancada':
                             Navigator.push(
@@ -165,7 +165,7 @@ class _ManutencaoDashboardAdminScreenState
                             _mostrarPerfil(context, userName);
                             break;
                           case 'sair':
-                            authService.logout();
+                            await authService.logout();
                             break;
                         }
                       },
