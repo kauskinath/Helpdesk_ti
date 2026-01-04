@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'dart:io';
@@ -845,9 +846,13 @@ class ManutencaoService {
   /// - Todos os arquivos anexados no Firebase Storage
   ///
   /// [chamadoId] - ID do chamado a ser deletado
+  /// [useCloudFunction] - Se true, usa Cloud Function para garantir exclusão completa
   ///
   /// Throws: Exception se houver erro na exclusão
-  Future<void> deletarChamado(String chamadoId) async {
+  Future<void> deletarChamado(
+    String chamadoId, {
+    bool useCloudFunction = true,
+  }) async {
     try {
       _log('🗑️ Iniciando exclusão do chamado: $chamadoId');
 
@@ -861,6 +866,25 @@ class ManutencaoService {
         throw 'Chamado não encontrado';
       }
 
+      // Usar Cloud Function para garantir exclusão completa
+      if (useCloudFunction) {
+        try {
+          final callable = FirebaseFunctions.instance.httpsCallable(
+            'deleteChamadoCompletely',
+          );
+          await callable.call({
+            'chamadoId': chamadoId,
+            'collection': _chamadosCollection,
+          });
+          _log('✅ Chamado $chamadoId deletado via Cloud Function');
+          return;
+        } catch (e) {
+          _log('⚠️ Cloud Function falhou, usando fallback local: $e');
+          // Continua com exclusão local como fallback
+        }
+      }
+
+      // Fallback: exclusão local
       // 2. Deletar subcoleção de comentários
       try {
         _log('🗑️ Deletando comentários...');
@@ -881,6 +905,66 @@ class ManutencaoService {
         _log('⚠️ Erro ao deletar comentários: $e');
       }
 
+      // 2.1 Deletar comentários da coleção global
+      try {
+        final comentariosGlobaisSnapshot = await _firestore
+            .collection('comentarios')
+            .where('chamadoId', isEqualTo: chamadoId)
+            .get();
+
+        if (comentariosGlobaisSnapshot.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (final doc in comentariosGlobaisSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+          _log(
+            '✅ ${comentariosGlobaisSnapshot.docs.length} comentários globais deletados',
+          );
+        }
+      } catch (e) {
+        _log('⚠️ Erro ao deletar comentários globais: $e');
+      }
+
+      // 2.2 Deletar avaliações de manutenção
+      try {
+        _log('🗑️ Deletando avaliações...');
+        final avaliacoesSnapshot = await _firestore
+            .collection('avaliacoes_manutencao')
+            .where('chamadoId', isEqualTo: chamadoId)
+            .get();
+
+        if (avaliacoesSnapshot.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (final doc in avaliacoesSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+          _log('✅ ${avaliacoesSnapshot.docs.length} avaliações deletadas');
+        }
+      } catch (e) {
+        _log('⚠️ Erro ao deletar avaliações: $e');
+      }
+
+      // 2.3 Deletar notificações relacionadas
+      try {
+        final notificacoesSnapshot = await _firestore
+            .collection('notifications')
+            .where('chamadoId', isEqualTo: chamadoId)
+            .get();
+
+        if (notificacoesSnapshot.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (final doc in notificacoesSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+          _log('✅ ${notificacoesSnapshot.docs.length} notificações deletadas');
+        }
+      } catch (e) {
+        _log('⚠️ Erro ao deletar notificações: $e');
+      }
+
       // 3. Deletar arquivos do Storage
       try {
         _log('🗑️ Deletando arquivos do Storage...');
@@ -893,6 +977,9 @@ class ManutencaoService {
 
         // Deletar pasta de execução
         await _deletarPastaStorage('manutencao/$chamadoId/execucao');
+
+        // Deletar pasta raiz do chamado
+        await _deletarPastaStorage('manutencao/$chamadoId');
 
         _log('✅ Arquivos do Storage deletados');
       } catch (e) {

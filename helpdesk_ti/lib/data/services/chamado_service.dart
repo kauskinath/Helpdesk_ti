@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -782,9 +783,13 @@ class ChamadoService {
   /// ⚠️ ATENÇÃO: Remove permanentemente. Usar com cuidado!
   ///
   /// [chamadoId]: ID do chamado a ser deletado
+  /// [useCloudFunction]: Se true, usa Cloud Function para garantir exclusão completa
   ///
   /// Throws: Exception se houver erro na exclusão
-  Future<void> deletarChamado(String chamadoId) async {
+  Future<void> deletarChamado(
+    String chamadoId, {
+    bool useCloudFunction = true,
+  }) async {
     try {
       _log('🗑️ Iniciando exclusão do chamado TI: $chamadoId');
 
@@ -798,7 +803,26 @@ class ChamadoService {
         throw 'Chamado não encontrado';
       }
 
-      // 2. Deletar subcoleção de comentários
+      // Usar Cloud Function para garantir exclusão completa
+      if (useCloudFunction) {
+        try {
+          final callable = FirebaseFunctions.instance.httpsCallable(
+            'deleteChamadoCompletely',
+          );
+          await callable.call({
+            'chamadoId': chamadoId,
+            'collection': 'tickets',
+          });
+          _log('✅ Chamado TI $chamadoId deletado via Cloud Function');
+          return;
+        } catch (e) {
+          _log('⚠️ Cloud Function falhou, usando fallback local: $e');
+          // Continua com exclusão local como fallback
+        }
+      }
+
+      // Fallback: exclusão local
+      // 2. Deletar subcoleção de comentários (coleção global)
       try {
         _log('🗑️ Deletando comentários...');
         final comentariosSnapshot = await _firestore
@@ -812,9 +836,33 @@ class ChamadoService {
           batch.delete(doc.reference);
         }
         await batch.commit();
-        _log('✅ ${comentariosSnapshot.docs.length} comentários deletados');
+        _log(
+          '✅ ${comentariosSnapshot.docs.length} comentários deletados (global)',
+        );
       } catch (e) {
         _log('⚠️ Erro ao deletar comentários: $e');
+      }
+
+      // 2.1 Deletar comentários da subcoleção do chamado
+      try {
+        final subComentariosSnapshot = await _firestore
+            .collection('tickets')
+            .doc(chamadoId)
+            .collection('comentarios')
+            .get();
+
+        if (subComentariosSnapshot.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (final doc in subComentariosSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+          _log(
+            '✅ ${subComentariosSnapshot.docs.length} comentários deletados (subcoleção)',
+          );
+        }
+      } catch (e) {
+        _log('⚠️ Erro ao deletar subcoleção comentários: $e');
       }
 
       // 3. Deletar subcoleção de avaliações
@@ -835,12 +883,53 @@ class ChamadoService {
         _log('⚠️ Erro ao deletar avaliações: $e');
       }
 
+      // 3.1 Deletar solicitações relacionadas
+      try {
+        _log('🗑️ Deletando solicitações...');
+        final solicitacoesSnapshot = await _firestore
+            .collection('solicitacoes')
+            .where('chamadoId', isEqualTo: chamadoId)
+            .get();
+
+        if (solicitacoesSnapshot.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (final doc in solicitacoesSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+          _log('✅ ${solicitacoesSnapshot.docs.length} solicitações deletadas');
+        }
+      } catch (e) {
+        _log('⚠️ Erro ao deletar solicitações: $e');
+      }
+
+      // 3.2 Deletar notificações relacionadas
+      try {
+        _log('🗑️ Deletando notificações...');
+        final notificacoesSnapshot = await _firestore
+            .collection('notifications')
+            .where('chamadoId', isEqualTo: chamadoId)
+            .get();
+
+        if (notificacoesSnapshot.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (final doc in notificacoesSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+          _log('✅ ${notificacoesSnapshot.docs.length} notificações deletadas');
+        }
+      } catch (e) {
+        _log('⚠️ Erro ao deletar notificações: $e');
+      }
+
       // 4. Deletar arquivos do Storage
       try {
         _log('🗑️ Deletando arquivos do Storage...');
 
         // Deletar pasta completa do chamado
         await _deletarPastaStorage('tickets/$chamadoId');
+        await _deletarPastaStorage('chamados/$chamadoId');
 
         _log('✅ Arquivos do Storage deletados');
       } catch (e) {

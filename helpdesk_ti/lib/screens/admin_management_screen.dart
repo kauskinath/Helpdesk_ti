@@ -255,7 +255,11 @@ class _ListarUsuariosTab extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar exclusão'),
-        content: Text('Deletar "$nome"?'),
+        content: Text(
+          'Deletar "$nome"?\n\n'
+          '⚠️ Esta ação removerá o usuário completamente do sistema '
+          '(autenticação e banco de dados).',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -271,15 +275,16 @@ class _ListarUsuariosTab extends StatelessWidget {
 
     if (confirm == true) {
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .delete();
+        // Usar Cloud Function para deletar completamente
+        final callable = FirebaseFunctions.instance.httpsCallable(
+          'deleteUserCompletely',
+        );
+        await callable.call({'uid': userId});
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✅ "$nome" deletado'),
+              content: Text('✅ "$nome" deletado completamente'),
               backgroundColor: Colors.green,
             ),
           );

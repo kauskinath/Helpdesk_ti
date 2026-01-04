@@ -353,3 +353,277 @@ exports.limparTokensInvalidos = functions.pubsub
       return null;
     }
   });
+
+/**
+ * Deletar usuário completamente (Firestore + Firebase Auth)
+ * Chamada HTTPS - apenas admins podem executar
+ */
+exports.deleteUserCompletely = functions.https.onCall(async (data, context) => {
+  // Verificar autenticação
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Usuário não autenticado'
+    );
+  }
+
+  // Verificar se o usuário que está chamando é admin
+  const callerDoc = await db.collection('users').doc(context.auth.uid).get();
+  const callerData = callerDoc.data();
+  
+  if (!callerData || callerData.role !== 'admin') {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Apenas admins podem deletar usuários'
+    );
+  }
+
+  // Validar parâmetros
+  const { uid } = data;
+  
+  if (!uid) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'UID do usuário é obrigatório'
+    );
+  }
+
+  // Não permitir que admin delete a si mesmo
+  if (uid === context.auth.uid) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Você não pode deletar sua própria conta'
+    );
+  }
+
+  try {
+    console.log(`🗑️ Iniciando exclusão completa do usuário: ${uid}`);
+
+    // 1. Deletar do Firebase Authentication
+    try {
+      await admin.auth().deleteUser(uid);
+      console.log(`✅ Usuário deletado do Firebase Auth: ${uid}`);
+    } catch (authError) {
+      // Se usuário não existe no Auth, continuar mesmo assim
+      if (authError.code !== 'auth/user-not-found') {
+        throw authError;
+      }
+      console.log(`⚠️ Usuário não encontrado no Auth (pode já ter sido deletado): ${uid}`);
+    }
+
+    // 2. Deletar do Firestore
+    try {
+      await db.collection('users').doc(uid).delete();
+      console.log(`✅ Usuário deletado do Firestore: ${uid}`);
+    } catch (firestoreError) {
+      console.error(`⚠️ Erro ao deletar do Firestore: ${firestoreError}`);
+    }
+
+    // 3. Deletar notificações do usuário (opcional, mas recomendado)
+    try {
+      const notificacoesSnapshot = await db.collection('notifications')
+        .where('userId', '==', uid)
+        .get();
+      
+      if (!notificacoesSnapshot.empty) {
+        const batch = db.batch();
+        notificacoesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ ${notificacoesSnapshot.size} notificações deletadas`);
+      }
+    } catch (notifError) {
+      console.log(`⚠️ Erro ao deletar notificações: ${notifError}`);
+    }
+
+    console.log(`✅ Usuário ${uid} deletado completamente`);
+
+    return { 
+      success: true, 
+      message: 'Usuário deletado completamente (Auth + Firestore)' 
+    };
+
+  } catch (error) {
+    console.error('❌ Erro ao deletar usuário:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      `Erro ao deletar usuário: ${error.message}`
+    );
+  }
+});
+
+/**
+ * Deletar chamado e todos os dados relacionados
+ * Chamada HTTPS - apenas admins podem executar
+ */
+exports.deleteChamadoCompletely = functions.https.onCall(async (data, context) => {
+  // Verificar autenticação
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Usuário não autenticado'
+    );
+  }
+
+  // Verificar se o usuário que está chamando é admin
+  const callerDoc = await db.collection('users').doc(context.auth.uid).get();
+  const callerData = callerDoc.data();
+  
+  if (!callerData || !['admin', 'admin_manutencao'].includes(callerData.role)) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Apenas admins podem deletar chamados'
+    );
+  }
+
+  // Validar parâmetros
+  const { chamadoId, collection } = data;
+  
+  if (!chamadoId) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'ID do chamado é obrigatório'
+    );
+  }
+
+  const collectionName = collection || 'tickets'; // default: TI
+
+  try {
+    console.log(`🗑️ Iniciando exclusão completa do chamado: ${chamadoId} (${collectionName})`);
+
+    // 1. Deletar comentários da coleção global
+    try {
+      const comentariosSnapshot = await db.collection('comentarios')
+        .where('chamadoId', '==', chamadoId)
+        .get();
+      
+      if (!comentariosSnapshot.empty) {
+        const batch = db.batch();
+        comentariosSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ ${comentariosSnapshot.size} comentários deletados (coleção global)`);
+      }
+    } catch (e) {
+      console.log(`⚠️ Erro ao deletar comentários globais: ${e}`);
+    }
+
+    // 2. Deletar comentários da subcoleção do chamado
+    try {
+      const subComentariosSnapshot = await db.collection(collectionName)
+        .doc(chamadoId)
+        .collection('comentarios')
+        .get();
+      
+      if (!subComentariosSnapshot.empty) {
+        const batch = db.batch();
+        subComentariosSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ ${subComentariosSnapshot.size} comentários deletados (subcoleção)`);
+      }
+    } catch (e) {
+      console.log(`⚠️ Erro ao deletar subcoleção comentários: ${e}`);
+    }
+
+    // 3. Deletar avaliações
+    try {
+      const avaliacoesSnapshot = await db.collection('avaliacoes')
+        .where('chamadoId', '==', chamadoId)
+        .get();
+      
+      if (!avaliacoesSnapshot.empty) {
+        const batch = db.batch();
+        avaliacoesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ ${avaliacoesSnapshot.size} avaliações deletadas`);
+      }
+    } catch (e) {
+      console.log(`⚠️ Erro ao deletar avaliações: ${e}`);
+    }
+
+    // 4. Deletar solicitações relacionadas
+    try {
+      const solicitacoesSnapshot = await db.collection('solicitacoes')
+        .where('chamadoId', '==', chamadoId)
+        .get();
+      
+      if (!solicitacoesSnapshot.empty) {
+        const batch = db.batch();
+        solicitacoesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ ${solicitacoesSnapshot.size} solicitações deletadas`);
+      }
+    } catch (e) {
+      console.log(`⚠️ Erro ao deletar solicitações: ${e}`);
+    }
+
+    // 5. Deletar notificações relacionadas
+    try {
+      const notificacoesSnapshot = await db.collection('notifications')
+        .where('chamadoId', '==', chamadoId)
+        .get();
+      
+      if (!notificacoesSnapshot.empty) {
+        const batch = db.batch();
+        notificacoesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ ${notificacoesSnapshot.size} notificações deletadas`);
+      }
+    } catch (e) {
+      console.log(`⚠️ Erro ao deletar notificações: ${e}`);
+    }
+
+    // 6. Deletar arquivos do Storage
+    try {
+      const bucket = admin.storage().bucket();
+      
+      // Tentar deletar pastas comuns de anexos
+      const paths = [
+        `tickets/${chamadoId}`,
+        `chamados/${chamadoId}`,
+        `manutencao/${chamadoId}`,
+        `solicitacoes/${chamadoId}`,
+      ];
+
+      for (const path of paths) {
+        try {
+          const [files] = await bucket.getFiles({ prefix: path });
+          if (files.length > 0) {
+            await Promise.all(files.map(file => file.delete()));
+            console.log(`✅ ${files.length} arquivos deletados de ${path}`);
+          }
+        } catch (storageError) {
+          // Ignorar erros de pasta não existente
+        }
+      }
+    } catch (e) {
+      console.log(`⚠️ Erro ao deletar arquivos do Storage: ${e}`);
+    }
+
+    // 7. Finalmente, deletar o documento do chamado
+    await db.collection(collectionName).doc(chamadoId).delete();
+    console.log(`✅ Chamado ${chamadoId} deletado da coleção ${collectionName}`);
+
+    return { 
+      success: true, 
+      message: 'Chamado e todos os dados relacionados foram deletados completamente' 
+    };
+
+  } catch (error) {
+    console.error('❌ Erro ao deletar chamado:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      `Erro ao deletar chamado: ${error.message}`
+    );
+  }
+});
