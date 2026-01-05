@@ -11,6 +11,7 @@ class AuthService extends ChangeNotifier {
   User? _currentUser;
   String? _userRole; // 'user', 'manager', 'admin'
   String? _userName;
+  String? _userSetor; // Setor do usuário
   bool _isLoadingRole = false; // Flag para evitar loading duplicado
 
   // ========== LOGGING CONDICIONAL ==========
@@ -39,6 +40,7 @@ class AuthService extends ChangeNotifier {
   String? get userEmail => _currentUser?.email;
   String? get userRole => _userRole;
   String? get userName => _userName;
+  String? get userSetor => _userSetor;
   bool get isLoggedIn => _currentUser != null;
   bool get isAdmin => _userRole == 'admin';
   bool get isManager => _userRole == 'manager';
@@ -96,6 +98,7 @@ class AuthService extends ChangeNotifier {
 
         _userRole = data?['role'] ?? 'user';
         _userName = data?['nome'] ?? data?['name'] ?? _currentUser!.email;
+        _userSetor = data?['setor'];
 
         _log('✅ ═══════════════════════════════════════');
         _log('✅ LOGIN AUTORIZADO');
@@ -103,7 +106,7 @@ class AuthService extends ChangeNotifier {
         _log('✅ UID: ${_currentUser!.uid}');
         _log('✅ Nome: $_userName');
         _log('✅ Role: $_userRole');
-        _log('✅ Depto: ${data?['departamento'] ?? 'N/A'}');
+        _log('✅ Setor: $_userSetor');
         _log('✅ ═══════════════════════════════════════');
       } else {
         // EXCEÇÃO: Se for o email "administrador@helpdesk.com", criar documento admin automaticamente

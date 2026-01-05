@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'app_colors.dart';
 
 /// Definição de temas da aplicação (Claro e Escuro)
 ///
 /// Esta classe centraliza todas as configurações de tema,
 /// incluindo cores, tipografia, estilos de componentes, etc.
+///
+/// **IMPORTANTE:** Cores são FIXAS para garantir consistência
+/// em TODAS as versões do Android (não usa Material You dinâmico)
 ///
 /// **Como usar:**
 /// ```dart
@@ -19,34 +23,59 @@ class AppTheme {
 
   /// Tema claro (padrão)
   static ThemeData get lightTheme {
+    // Cores fixas para consistência entre versões Android
+    const primaryColor = AppColors.primary;
+    const backgroundColor = AppColors.greyLight;
+    const surfaceColor = Colors.white;
+    const onSurfaceColor = AppColors.textPrimary;
+
     return ThemeData(
+      // IMPORTANTE: useMaterial3 = true, mas com cores FIXAS
+      useMaterial3: true,
+
       // Brilho
       brightness: Brightness.light,
 
-      // Esquema de cores
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.primary,
-        primaryContainer: AppColors.primaryLight,
-        secondary: AppColors.accent,
-        secondaryContainer: AppColors.accentLight,
-        surface: Colors.white,
-        onSurface: AppColors.textPrimary,
+      // Esquema de cores FIXO (não dinâmico)
+      colorScheme: const ColorScheme(
+        brightness: Brightness.light,
+        primary: primaryColor,
         onPrimary: Colors.white,
+        primaryContainer: AppColors.primaryLight,
+        onPrimaryContainer: AppColors.primaryDark,
+        secondary: AppColors.accent,
         onSecondary: Colors.white,
+        secondaryContainer: AppColors.accentLight,
+        onSecondaryContainer: AppColors.primaryDark,
+        tertiary: AppColors.info,
+        onTertiary: Colors.white,
         error: AppColors.error,
         onError: Colors.white,
+        surface: surfaceColor,
+        onSurface: onSurfaceColor,
+        surfaceContainerHighest: backgroundColor,
+        outline: AppColors.grey,
+        shadow: Colors.black26,
       ),
 
       // Cores principais
-      primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: AppColors.greyLight,
+      primaryColor: primaryColor,
+      scaffoldBackgroundColor: backgroundColor,
+      canvasColor: surfaceColor,
+      cardColor: surfaceColor,
+      dividerColor: AppColors.grey.withAlpha(50),
 
-      // AppBar
+      // Overlay para barra de status
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primary,
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
         titleTextStyle: TextStyle(
           color: Colors.white,
           fontSize: 20,
@@ -150,8 +179,8 @@ class AppTheme {
       ),
 
       // Divisores
-      dividerTheme: DividerThemeData(
-        color: AppColors.grey.withValues(alpha: 0.2),
+      dividerTheme: const DividerThemeData(
+        color: Color(0x339E9E9E), // AppColors.grey com alpha 0.2
         thickness: 1,
       ),
 
@@ -200,64 +229,83 @@ class AppTheme {
   // ============ TEMA ESCURO ============
 
   /// Tema escuro (MELHORADO - melhor contraste e visibilidade)
+  /// Cores FIXAS para consistência entre versões Android
   static ThemeData get darkTheme {
-    // Cores para tema escuro com melhor contraste
-    const darkBackground = Color(
-      0xFF0A0A0A,
-    ); // Mais escuro para melhor contraste
-    const darkSurface = Color(0xFF1C1C1E); // Surface mais visível
-    const darkSurfaceVariant = Color(0xFF2C2C2E); // Variant para inputs
-    const darkTextPrimary = Color(0xFFF5F5F5); // Texto mais claro
+    // Cores para tema escuro com melhor contraste - FIXAS
+    const darkBackground = Color(0xFF0A0A0A);
+    const darkSurface = Color(0xFF1C1C1E);
+    const darkSurfaceVariant = Color(0xFF2C2C2E);
+    const darkTextPrimary = Color(0xFFF5F5F5);
     const darkTextSecondary = Color(0xFFB0B0B0);
-    const darkPrimary = Color(0xFF64B5F6); // Azul mais claro e vibrante
-    const darkAccent = Color(0xFF4FC3F7); // Accent mais vibrante
+    const darkPrimary = Color(0xFF64B5F6);
+    const darkAccent = Color(0xFF4FC3F7);
+    const darkError = Color(0xFFEF5350);
 
     return ThemeData(
+      // IMPORTANTE: useMaterial3 = true, mas com cores FIXAS
+      useMaterial3: true,
+
       // Brilho
       brightness: Brightness.dark,
 
-      // Esquema de cores
-      colorScheme: const ColorScheme.dark(
+      // Esquema de cores FIXO (não dinâmico)
+      colorScheme: const ColorScheme(
+        brightness: Brightness.dark,
         primary: darkPrimary,
+        onPrimary: Colors.black87,
         primaryContainer: Color(0xFF1565C0),
+        onPrimaryContainer: Colors.white,
         secondary: darkAccent,
+        onSecondary: Colors.black87,
         secondaryContainer: Color(0xFF0277BD),
+        onSecondaryContainer: Colors.white,
+        tertiary: Color(0xFF80DEEA),
+        onTertiary: Colors.black87,
+        error: darkError,
+        onError: Colors.black87,
         surface: darkSurface,
         onSurface: darkTextPrimary,
-        onPrimary: Colors.black87,
-        onSecondary: Colors.black87,
-        error: Color(0xFFEF5350),
-        onError: Colors.black87,
+        surfaceContainerHighest: darkSurfaceVariant,
+        outline: darkTextSecondary,
+        shadow: Colors.black54,
       ),
 
       // Cores principais
       primaryColor: darkPrimary,
       scaffoldBackgroundColor: darkBackground,
+      canvasColor: darkSurface,
+      cardColor: darkSurface,
+      dividerColor: darkTextSecondary.withAlpha(50),
 
       // AppBar
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: darkSurface,
         foregroundColor: darkTextPrimary,
         elevation: 4,
-        shadowColor: Colors.black.withValues(alpha: 0.5),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        shadowColor: Colors.black54,
         centerTitle: false,
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           color: darkTextPrimary,
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: const IconThemeData(color: darkTextPrimary),
+        iconTheme: IconThemeData(color: darkTextPrimary),
       ),
 
       // Cards (melhor contraste)
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: darkSurface,
         elevation: 6,
-        shadowColor: Colors.black.withValues(alpha: 0.4),
+        shadowColor: Colors.black45,
         shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
           side: BorderSide(
-            color: darkTextSecondary.withValues(alpha: 0.1),
+            color: Color(0x1AB0B0B0), // darkTextSecondary com alpha 0.1
             width: 1,
           ),
         ),
@@ -269,7 +317,7 @@ class AppTheme {
           backgroundColor: darkPrimary,
           foregroundColor: Colors.black87,
           elevation: 4,
-          shadowColor: darkPrimary.withValues(alpha: 0.4),
+          shadowColor: darkPrimary.withAlpha(102), // 0.4 * 255 = 102
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -299,15 +347,15 @@ class AppTheme {
         fillColor: darkSurfaceVariant,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-            color: darkTextSecondary.withValues(alpha: 0.4),
+          borderSide: const BorderSide(
+            color: Color(0x66B0B0B0), // darkTextSecondary com alpha 0.4
             width: 1.5,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-            color: darkTextSecondary.withValues(alpha: 0.4),
+          borderSide: const BorderSide(
+            color: Color(0x66B0B0B0), // darkTextSecondary com alpha 0.4
             width: 1.5,
           ),
         ),
@@ -317,14 +365,18 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFEF5350), width: 2),
+          borderSide: const BorderSide(color: darkError, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 12,
         ),
-        labelStyle: TextStyle(color: darkTextPrimary.withValues(alpha: 0.8)),
-        hintStyle: TextStyle(color: darkTextSecondary.withValues(alpha: 0.6)),
+        labelStyle: const TextStyle(
+          color: Color(0xCCF5F5F5),
+        ), // darkTextPrimary com alpha 0.8
+        hintStyle: const TextStyle(
+          color: Color(0x99B0B0B0),
+        ), // darkTextSecondary com alpha 0.6
       ),
 
       // FloatingActionButton
@@ -348,8 +400,8 @@ class AppTheme {
       ),
 
       // Divisores
-      dividerTheme: DividerThemeData(
-        color: darkTextSecondary.withValues(alpha: 0.2),
+      dividerTheme: const DividerThemeData(
+        color: Color(0x33B0B0B0), // darkTextSecondary com alpha 0.2
         thickness: 1,
       ),
 

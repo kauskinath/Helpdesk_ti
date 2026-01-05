@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
-import 'package:helpdesk_ti/features/ti/models/chamado_template.dart';
-import '../data/firestore_service.dart';
-import 'selecionar_template_screen.dart';
 import '../features/manutencao/screens/comum/manutencao_criar_chamado_screen.dart';
 import 'tabs/meus_chamados_tab.dart';
 import '../features/manutencao/screens/comum/manutencao_meus_chamados_screen.dart';
@@ -40,16 +37,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
     final userName = authService.userName ?? 'Usuário';
 
     return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-            isDarkMode
-                ? 'assets/images/wallpaper_dark.png'
-                : 'assets/images/wallpaper_light.png',
-          ),
-          fit: BoxFit.cover,
-        ),
-      ),
+      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButton: Container(
@@ -465,24 +453,10 @@ class _UserHomeScreenState extends State<UserHomeScreen>
 
               // Opção TI
               InkWell(
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(dialogContext);
-                  // Abrir seletor de templates de TI
-                  final firestoreService = FirestoreService();
-                  final template = await Navigator.push<ChamadoTemplate>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SelecionarTemplateScreen(
-                        firestoreService: firestoreService,
-                      ),
-                    ),
-                  );
-
-                  if (context.mounted) {
-                    Navigator.of(
-                      context,
-                    ).pushNamed('/new_ticket', arguments: template);
-                  }
+                  // Ir direto para criação manual de chamado TI
+                  Navigator.of(context).pushNamed('/new_ticket');
                 },
                 child: Container(
                   width: double.infinity,

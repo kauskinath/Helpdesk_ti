@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../data/firestore_service.dart';
-import 'timeline_widget.dart';
+import 'chat_mensagens_widget.dart';
 
 /// Widget que exibe comentários com paginação
 ///
@@ -224,8 +224,8 @@ class _ComentariosPaginadosWidgetState
             ),
           ),
 
-        // ✅ LISTA DE COMENTÁRIOS (TimelineWidget)
-        TimelineWidget(comentarios: _comentarios),
+        // ✅ LISTA DE COMENTÁRIOS (ChatMensagensWidget - estilo WhatsApp)
+        ChatMensagensWidget(comentarios: _comentarios),
 
         // ✅ BOTÃO "CARREGAR MAIS"
         if (_temMais) ...[

@@ -44,16 +44,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(
-              isDarkMode
-                  ? 'assets/images/wallpaper_dark.png'
-                  : 'assets/images/wallpaper_light.png',
-            ),
-            fit: BoxFit.cover,
-          ),
-        ),
+        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
         child: const SafeArea(child: _ListarUsuariosTab()),
       ),
     );

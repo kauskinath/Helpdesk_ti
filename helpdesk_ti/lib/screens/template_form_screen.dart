@@ -142,16 +142,7 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
     final isDarkMode = themeProvider.isDarkMode;
 
     return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-            isDarkMode
-                ? 'assets/images/wallpaper_dark.png'
-                : 'assets/images/wallpaper_light.png',
-          ),
-          fit: BoxFit.cover,
-        ),
-      ),
+      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
@@ -529,8 +520,3 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
     );
   }
 }
-
-
-
-
-

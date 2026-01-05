@@ -92,7 +92,10 @@ service cloud.firestore {
       allow update: if isAdmin() ||
                        isManager() ||
                        (resource.data.usuarioId == request.auth.uid && 
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'anexos', 'lastUpdated']));
+                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'anexos', 'lastUpdated']) ||
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadoEm', 'avaliacaoId']) ||
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadoEm']) ||
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliacaoId'])));
       
       // Deleção: Apenas admins
       allow delete: if isAdmin();

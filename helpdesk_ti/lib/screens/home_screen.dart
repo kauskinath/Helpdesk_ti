@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../data/firestore_service.dart';
 import '../core/permissions/permission_provider.dart';
-import 'package:helpdesk_ti/features/ti/models/chamado_template.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import '../features/manutencao/screens/comum/manutencao_criar_chamado_screen.dart';
 import 'tabs/meus_chamados_tab.dart';
@@ -11,7 +10,6 @@ import 'tabs/fila_tecnica_tab.dart';
 import 'tabs/aprovar_solicitacoes_tab.dart';
 import 'tabs/user_dashboard_tab.dart';
 import 'historico_chamados_screen.dart';
-import 'selecionar_template_screen.dart';
 import 'search/advanced_search_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'about_screen.dart';
@@ -51,16 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-            isDarkMode
-                ? 'assets/images/wallpaper_dark.png'
-                : 'assets/images/wallpaper_light.png',
-          ),
-          fit: BoxFit.cover,
-        ),
-      ),
+      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
@@ -521,24 +510,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Opção TI
               InkWell(
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(dialogContext);
-                  // Abrir seletor de templates de TI
-                  final firestoreService = FirestoreService();
-                  final template = await Navigator.push<ChamadoTemplate>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SelecionarTemplateScreen(
-                        firestoreService: firestoreService,
-                      ),
-                    ),
-                  );
-
-                  if (context.mounted) {
-                    Navigator.of(
-                      context,
-                    ).pushNamed('/new_ticket', arguments: template);
-                  }
+                  // Ir direto para criação manual de chamado TI
+                  Navigator.of(context).pushNamed('/new_ticket');
                 },
                 child: Container(
                   width: double.infinity,

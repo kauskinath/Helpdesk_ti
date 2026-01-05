@@ -34,8 +34,9 @@ class AvaliacaoService {
           .set(avaliacao.toMap());
 
       // Atualizar chamado para marcar que foi avaliado
-      await _firestore.collection('chamados').doc(avaliacao.chamadoId).update({
-        'avaliadoEm': avaliacao.dataAvaliacao,
+      // Usar FieldValue.serverTimestamp() para evitar problemas de validação
+      await _firestore.collection('tickets').doc(avaliacao.chamadoId).update({
+        'avaliadoEm': FieldValue.serverTimestamp(),
         'avaliacaoId': avaliacao.id,
       });
 
@@ -293,12 +294,10 @@ class AvaliacaoService {
         await _firestore.collection('avaliacoes').doc(avaliacaoId).delete();
 
         // Limpar referência no chamado
-        await _firestore.collection('chamados').doc(avaliacao.chamadoId).update(
-          {
-            'avaliadoEm': FieldValue.delete(),
-            'avaliacaoId': FieldValue.delete(),
-          },
-        );
+        await _firestore.collection('tickets').doc(avaliacao.chamadoId).update({
+          'avaliadoEm': FieldValue.delete(),
+          'avaliacaoId': FieldValue.delete(),
+        });
 
         print('✅ Avaliação $avaliacaoId deletada');
       }
@@ -307,4 +306,3 @@ class AvaliacaoService {
     }
   }
 }
-

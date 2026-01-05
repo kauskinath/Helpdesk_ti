@@ -5,7 +5,6 @@ import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../data/firestore_service.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
 import 'package:helpdesk_ti/features/ti/models/solicitacao.dart';
-import 'package:helpdesk_ti/features/ti/models/chamado_template.dart';
 import '../widgets/new_ticket_form.dart';
 
 class NewTicketScreen extends StatelessWidget {
@@ -142,12 +141,7 @@ class NewTicketScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Capturar template passado pela navegação (se houver)
-    final template =
-        ModalRoute.of(context)?.settings.arguments as ChamadoTemplate?;
-
     return NewTicketForm(
-      template: template,
       onSubmit: (titulo, setor, tipo, descricao, link, prioridade, imagem) {
         _handleNewTicket(
           context,
@@ -163,6 +157,3 @@ class NewTicketScreen extends StatelessWidget {
     );
   }
 }
-
-
-

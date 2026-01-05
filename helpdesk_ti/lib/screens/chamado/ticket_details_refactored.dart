@@ -30,13 +30,11 @@ class TicketDetailsRefactored extends StatefulWidget {
 class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
   bool _isLoading = false;
   final TextEditingController _comentarioController = TextEditingController();
-  int? _prioridadeSelecionada;
   final GlobalKey _comentariosKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    _prioridadeSelecionada = widget.chamado.prioridade;
   }
 
   @override
@@ -121,7 +119,7 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             ? DateTime.now()
             : widget.chamado.dataFechamento,
         motivoRejeicao: motivo ?? widget.chamado.motivoRejeicao,
-        prioridade: _prioridadeSelecionada ?? widget.chamado.prioridade,
+        prioridade: widget.chamado.prioridade,
       );
 
       await widget.firestoreService.atualizarChamadoCompleto(chamadoAtualizado);
@@ -154,51 +152,6 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             content: Text('Erro ao atualizar: $e'),
             backgroundColor: Colors.red,
           ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _atualizarPrioridade() async {
-    if (_prioridadeSelecionada == widget.chamado.prioridade) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final adminId = widget.authService.firebaseUser?.uid ?? '';
-      final adminNome = widget.authService.firebaseUser?.displayName ?? 'Admin';
-
-      await widget.firestoreService.atualizarChamado(widget.chamado.id, {
-        'prioridade': _prioridadeSelecionada,
-        'dataAtualizacao': DateTime.now(),
-      });
-
-      await widget.firestoreService.adicionarComentario(
-        chamadoId: widget.chamado.id,
-        autorId: adminId,
-        autorNome: adminNome,
-        autorRole: 'admin',
-        mensagem:
-            'Prioridade alterada para: ${_getPriorityLabel(_prioridadeSelecionada!)}',
-        tipo: 'atualizacao',
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Prioridade atualizada!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -325,16 +278,7 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(
-              isDarkMode
-                  ? 'assets/images/wallpaper_dark.png'
-                  : 'assets/images/wallpaper_light.png',
-            ),
-            fit: BoxFit.cover,
-          ),
-        ),
+        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
         child: SafeArea(
           child: Column(
             children: [
@@ -392,11 +336,9 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                       _buildInfoCard(),
                       const SizedBox(height: 16),
 
-                      // Controle de prioridade (apenas admin)
-                      if (isAdmin) ...[
-                        _buildPriorityControl(),
-                        const SizedBox(height: 16),
-                      ],
+                      // Prioridade do chamado (apenas visualização, não editável)
+                      _buildPriorityDisplay(),
+                      const SizedBox(height: 16),
 
                       // Botões de ação (admin pode aceitar/recusar se Aberto, ou finalizar se Em Andamento)
                       if (canEditStatus || canFinalize) ...[
@@ -706,67 +648,54 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
     );
   }
 
-  Widget _buildPriorityControl() {
+  /// Widget de exibição da prioridade (apenas visualização, não editável)
+  Widget _buildPriorityDisplay() {
+    final prioridade = widget.chamado.prioridade;
+    final color = _getPriorityColor(prioridade);
+    final label = _getPriorityLabel(prioridade);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor.withValues(alpha: 0.5),
+        color: color.withAlpha(25),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        border: Border.all(color: color.withAlpha(100)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'Prioridade do Chamado',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withAlpha(50),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(Icons.flag, color: color, size: 24),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [1, 2, 3, 4].map((prioridade) {
-              final isSelected = _prioridadeSelecionada == prioridade;
-              final color = _getPriorityColor(prioridade);
-
-              return GestureDetector(
-                onTap: () {
-                  setState(() => _prioridadeSelecionada = prioridade);
-                  _atualizarPrioridade();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? color.withValues(alpha: 0.3) : null,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected
-                          ? color
-                          : Theme.of(context).dividerColor,
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Text(
-                    _getPriorityLabel(prioridade),
-                    style: TextStyle(
-                      color: isSelected ? color : null,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Prioridade',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.black54,
                   ),
                 ),
-              );
-            }).toList(),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -839,70 +768,227 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
   }
 
   Widget _buildComentariosSection() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isClosed = widget.chamado.status == 'Fechado';
+
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: isDarkMode
+            ? Colors.white.withAlpha(8)
+            : Colors.white.withAlpha(200),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.white.withAlpha(15) : Colors.grey.shade200,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Atualizações e Comentários',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Campo de texto para adicionar comentário
-          TextField(
-            controller: _comentarioController,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Adicionar atualização ou comentário...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(),
+          // Cabeçalho estilo chat
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? const Color(0xFF2196F3).withAlpha(30)
+                      : const Color(0xFF2196F3).withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.chat_bubble_outline,
+                  color: isDarkMode
+                      ? const Color(0xFF64B5F6)
+                      : const Color(0xFF2196F3),
+                  size: 24,
+                ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Conversa',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      isClosed
+                          ? 'Este chamado foi encerrado'
+                          : 'Troque mensagens com a TI',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode
+                            ? Colors.white54
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: _adicionarComentario,
-              icon: const Icon(Icons.send, size: 18),
-              label: const Text('Enviar'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
+              // Status da conversa
+              Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                decoration: BoxDecoration(
+                  color: isClosed
+                      ? Colors.grey.withAlpha(50)
+                      : Colors.green.withAlpha(30),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isClosed ? Icons.lock : Icons.circle,
+                      size: isClosed ? 14 : 8,
+                      color: isClosed ? Colors.grey : Colors.green,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isClosed ? 'Encerrado' : 'Ativo',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isClosed ? Colors.grey : Colors.green,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
+
           const SizedBox(height: 16),
 
-          // Timeline de comentários com paginação
+          // Divider
+          Divider(color: isDarkMode ? Colors.white12 : Colors.grey.shade200),
+
+          const SizedBox(height: 12),
+
+          // Timeline de comentários com paginação (estilo chat)
           ComentariosPaginadosWidget(
             key: _comentariosKey,
             chamadoId: widget.chamado.id,
             firestoreService: widget.firestoreService,
           ),
+
+          const SizedBox(height: 16),
+
+          // Campo de texto para adicionar comentário (desabilitado se fechado)
+          if (isClosed)
+            // Mensagem de chamado encerrado
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? Colors.grey.withAlpha(30)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode
+                      ? Colors.grey.withAlpha(50)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 18,
+                    color: isDarkMode ? Colors.white38 : Colors.grey.shade500,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Chamado fechado. Não é possível enviar mensagens.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDarkMode ? Colors.white38 : Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            // Campo de entrada de mensagem (estilo WhatsApp)
+            Container(
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? Colors.white.withAlpha(10)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isDarkMode
+                      ? Colors.white.withAlpha(20)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Campo de texto
+                  Expanded(
+                    child: TextField(
+                      controller: _comentarioController,
+                      maxLines: 4,
+                      minLines: 1,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'Digite sua mensagem...',
+                        hintStyle: TextStyle(
+                          color: isDarkMode
+                              ? Colors.white38
+                              : Colors.grey.shade500,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ),
+
+                  // Botão de enviar
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4, bottom: 4),
+                    child: Material(
+                      color: const Color(0xFF2196F3),
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: _adicionarComentario,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

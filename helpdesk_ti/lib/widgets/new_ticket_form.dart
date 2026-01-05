@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:helpdesk_ti/features/ti/models/chamado_template.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/services/auth_service.dart';
 
 class NewTicketForm extends StatefulWidget {
-  final ChamadoTemplate? template;
   final Function(
     String titulo,
     String setor,
@@ -17,7 +16,7 @@ class NewTicketForm extends StatefulWidget {
   )?
   onSubmit;
 
-  const NewTicketForm({super.key, this.template, this.onSubmit});
+  const NewTicketForm({super.key, this.onSubmit});
 
   @override
   State<NewTicketForm> createState() => _NewTicketFormState();
@@ -28,7 +27,6 @@ class _NewTicketFormState extends State<NewTicketForm> {
   final _descricaoController = TextEditingController();
   final _linkController = TextEditingController();
 
-  String _selectedSetor = 'almoxarifado';
   String _selectedTipo = 'Solicitação';
   int _prioridadeSelecionada = 2; // Padrão: Média
   final bool _isLoading = false;
@@ -37,19 +35,10 @@ class _NewTicketFormState extends State<NewTicketForm> {
   @override
   void initState() {
     super.initState();
-    // Preencher campos com dados do template, se fornecido
-    if (widget.template != null) {
-      _tituloController.text = widget.template!.titulo;
-      _descricaoController.text = widget.template!.descricaoModelo;
-      if (widget.template!.setor != null) {
-        _selectedSetor = widget.template!.setor!;
-      }
-      _selectedTipo = widget.template!.tipo;
-    }
   }
 
-  // Lista completa de setores da empresa
-  final Map<String, String> _setoresDisponiveis = {
+  // Mapa para exibir nome legível do setor
+  final Map<String, String> _setoresNomes = {
     'almoxarifado': 'Almoxarifado',
     'atendimento': 'Atendimento',
     'cesar': 'Estoque G6',
@@ -81,6 +70,7 @@ class _NewTicketFormState extends State<NewTicketForm> {
     'rma_pecas': 'RMA Peças',
     'rma_pichaugaming': 'RMA Pichau Gaming',
     'vendas': 'Vendas PC',
+    'ti': 'TI',
   };
 
   final List<String> _tiposDisponiveis = ['Solicitação', 'Serviço'];
@@ -147,6 +137,9 @@ class _NewTicketFormState extends State<NewTicketForm> {
   }
 
   Future<void> _submit() async {
+    final authService = context.read<AuthService>();
+    final userSetor = authService.userSetor ?? 'ti';
+
     if (_descricaoController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preencha a descrição do chamado')),
@@ -155,12 +148,14 @@ class _NewTicketFormState extends State<NewTicketForm> {
     }
 
     // Gerar título automático baseado no setor e tipo
-    final setorNome = _setoresDisponiveis[_selectedSetor] ?? 'Setor';
-    final titulo = '$_selectedTipo - $setorNome';
+    final setorNome = _setoresNomes[userSetor] ?? userSetor;
+    final titulo = _tituloController.text.isNotEmpty
+        ? _tituloController.text
+        : '$_selectedTipo - $setorNome';
 
     widget.onSubmit?.call(
       titulo,
-      _selectedSetor,
+      userSetor,
       _selectedTipo,
       _descricaoController.text,
       _linkController.text.isNotEmpty ? _linkController.text : null,
@@ -221,11 +216,16 @@ class _NewTicketFormState extends State<NewTicketForm> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = context.watch<AuthService>();
+    final userSetor = authService.userSetor ?? 'ti';
+    final setorNome = _setoresNomes[userSetor] ?? userSetor;
+    final userName = authService.userName ?? 'Usuário';
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          'Novo Chamado',
+          'Novo Chamado TI',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).brightness == Brightness.dark
@@ -251,52 +251,84 @@ class _NewTicketFormState extends State<NewTicketForm> {
           return Container(
             width: double.infinity,
             height: double.infinity,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(
-                  isDarkMode
-                      ? 'assets/images/wallpaper_dark.png'
-                      : 'assets/images/wallpaper_light.png',
-                ),
-                fit: BoxFit.cover,
-              ),
-            ),
+            color: isDarkMode
+                ? const Color(0xFF1A1A2E)
+                : const Color(0xFFF5F7FA),
             child: SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Setor Solicitante
-                    Text(
-                      'Selecione o Setor',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedSetor,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.business),
-                        hintText: 'Escolha o setor solicitante',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // Card com informações do solicitante
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF1E88E5).withValues(alpha: 0.3),
                         ),
                       ),
-                      items: _setoresDisponiveis.entries
-                          .map(
-                            (entry) => DropdownMenuItem(
-                              value: entry.key,
-                              child: Text(entry.value),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (valor) {
-                        setState(() {
-                          _selectedSetor = valor ?? 'almoxarifado';
-                        });
-                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person,
+                                color: Color(0xFF1E88E5),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Solicitante: $userName',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.business,
+                                color: Color(0xFF1E88E5),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Setor: $setorNome',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.support_agent,
+                                color: Color(0xFF1E88E5),
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Destino: TI - Suporte Técnico',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 24),
@@ -394,9 +426,31 @@ class _NewTicketFormState extends State<NewTicketForm> {
 
                     const SizedBox(height: 24),
 
+                    // Título (opcional)
+                    Text(
+                      'Título do Chamado (Opcional)',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _tituloController,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Ex: Computador não liga, Instalar programa...',
+                        prefixIcon: const Icon(Icons.title),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
                     // Descrição
                     Text(
-                      'Descrição',
+                      'Descrição do Problema *',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -405,7 +459,8 @@ class _NewTicketFormState extends State<NewTicketForm> {
                     TextField(
                       controller: _descricaoController,
                       decoration: InputDecoration(
-                        hintText: 'Descreva detalhadamente o problema',
+                        hintText:
+                            'Descreva detalhadamente o problema ou solicitação...',
                         prefixIcon: const Icon(Icons.description),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -663,5 +718,3 @@ class _NewTicketFormState extends State<NewTicketForm> {
     );
   }
 }
-
-
