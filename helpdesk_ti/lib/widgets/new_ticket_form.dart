@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 
 class NewTicketForm extends StatefulWidget {
@@ -185,7 +185,7 @@ class _NewTicketFormState extends State<NewTicketForm> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : null,
+          color: isSelected ? color.withAlpha(51) : null,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : Theme.of(context).dividerColor,
@@ -223,497 +223,508 @@ class _NewTicketFormState extends State<NewTicketForm> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: DS.background,
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Novo Chamado TI',
           style: TextStyle(
+            fontFamily: 'Inter',
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black87,
-            shadows: Theme.of(context).brightness == Brightness.dark
-                ? [const Shadow(color: Colors.black54, blurRadius: 4)]
-                : [const Shadow(color: Colors.white70, blurRadius: 2)],
+            color: DS.textPrimary,
           ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white
-              : Colors.black87,
-        ),
+        iconTheme: const IconThemeData(color: DS.textPrimary),
       ),
-      body: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          final isDarkMode = themeProvider.isDarkMode;
-
-          return Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: isDarkMode
-                ? const Color(0xFF1A1A2E)
-                : const Color(0xFFF5F7FA),
-            child: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Card com informações do solicitante
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF1E88E5).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: DS.background,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Card com informações do solicitante
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: DS.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: DS.border, width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.person,
-                                color: Color(0xFF1E88E5),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Solicitante: $userName',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.business,
-                                color: Color(0xFF1E88E5),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Setor: $setorNome',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.support_agent,
-                                color: Color(0xFF1E88E5),
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Destino: TI - Suporte Técnico',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Tipo de Chamado (Solicitação ou Serviço)
-                    Text(
-                      'Tipo de Chamado',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedTipo,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.category),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF1E88E5),
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      items: _tiposDisponiveis
-                          .map(
-                            (tipo) => DropdownMenuItem(
-                              value: tipo,
-                              child: Text(tipo),
+                          const Icon(Icons.person, color: DS.action, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Solicitante: $userName',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: DS.textPrimary,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (valor) {
-                        setState(() {
-                          _selectedTipo = valor ?? 'Solicitação';
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Prioridade do Chamado
-                    Text(
-                      'Prioridade do Chamado',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).cardColor.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildPriorityChip(
-                            'Baixa',
-                            1,
-                            const Color(0xFF66BB6A),
-                            Icons.arrow_downward,
-                          ),
-                          _buildPriorityChip(
-                            'Média',
-                            2,
-                            const Color(0xFF42A5F5),
-                            Icons.remove,
-                          ),
-                          _buildPriorityChip(
-                            'Alta',
-                            3,
-                            const Color(0xFFFF9800),
-                            Icons.arrow_upward,
-                          ),
-                          _buildPriorityChip(
-                            'CRÍTICA',
-                            4,
-                            const Color(0xFFEF5350),
-                            Icons.priority_high,
                           ),
                         ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Título (opcional)
-                    Text(
-                      'Título do Chamado (Opcional)',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _tituloController,
-                      decoration: InputDecoration(
-                        hintText:
-                            'Ex: Computador não liga, Instalar programa...',
-                        prefixIcon: const Icon(Icons.title),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Descrição
-                    Text(
-                      'Descrição do Problema *',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _descricaoController,
-                      decoration: InputDecoration(
-                        hintText:
-                            'Descreva detalhadamente o problema ou solicitação...',
-                        prefixIcon: const Icon(Icons.description),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      maxLines: 4,
-                      minLines: 3,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Link ou Especificação (condicional para Solicitação)
-                    if (_selectedTipo == 'Solicitação') ...[
-                      Text(
-                        'Link do Produto ou Especificação',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: _linkController,
-                        decoration: InputDecoration(
-                          hintText: 'URL do produto ou especificações técnicas',
-                          prefixIcon: const Icon(Icons.link),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.business,
+                            color: DS.action,
+                            size: 20,
                           ),
-                        ),
-                        maxLines: 2,
-                        minLines: 1,
+                          const SizedBox(width: 8),
+                          Text(
+                            'Setor: $setorNome',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: DS.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-                    ], // Seção de Anexos
-                    Text(
-                      'Anexar Foto (Opcional)',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 8),
+                      const Row(
+                        children: [
+                          Icon(Icons.support_agent, color: DS.action, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Destino: TI - Suporte Técnico',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: DS.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Tipo de Chamado
+                const Text(
+                  'Tipo de Chamado',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: DS.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: DS.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: DS.border),
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedTipo,
+                    dropdownColor: DS.card,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      color: DS.textPrimary,
+                    ),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.category, color: DS.textSecondary),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    items: _tiposDisponiveis
+                        .map(
+                          (tipo) =>
+                              DropdownMenuItem(value: tipo, child: Text(tipo)),
+                        )
+                        .toList(),
+                    onChanged: (valor) {
+                      setState(() => _selectedTipo = valor ?? 'Solicitação');
+                    },
+                  ),
+                ),
 
-                    // Galeria de imagens selecionadas
-                    if (_selectedImages.isNotEmpty) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).cardColor.withValues(alpha: 0.3),
-                          border: Border.all(
-                            color: const Color(0xFF1E88E5),
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 24),
+
+                // Prioridade
+                const Text(
+                  'Prioridade do Chamado',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: DS.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: DS.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: DS.border),
+                  ),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildPriorityChip(
+                        'Baixa',
+                        1,
+                        DS.success,
+                        Icons.arrow_downward,
+                      ),
+                      _buildPriorityChip('Média', 2, DS.action, Icons.remove),
+                      _buildPriorityChip(
+                        'Alta',
+                        3,
+                        DS.warning,
+                        Icons.arrow_upward,
+                      ),
+                      _buildPriorityChip(
+                        'CRÍTICA',
+                        4,
+                        DS.error,
+                        Icons.priority_high,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Título
+                const Text(
+                  'Título do Chamado (Opcional)',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: DS.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _tituloController,
+                  style: const TextStyle(color: DS.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Ex: Computador não liga, Instalar programa...',
+                    hintStyle: const TextStyle(color: DS.textTertiary),
+                    prefixIcon: const Icon(
+                      Icons.title,
+                      color: DS.textSecondary,
+                    ),
+                    filled: true,
+                    fillColor: DS.card,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: DS.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: DS.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: DS.action, width: 2),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Descrição
+                const Text(
+                  'Descrição do Problema *',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: DS.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _descricaoController,
+                  style: const TextStyle(color: DS.textPrimary),
+                  decoration: InputDecoration(
+                    hintText:
+                        'Descreva detalhadamente o problema ou solicitação...',
+                    hintStyle: const TextStyle(color: DS.textTertiary),
+                    prefixIcon: const Icon(
+                      Icons.description,
+                      color: DS.textSecondary,
+                    ),
+                    filled: true,
+                    fillColor: DS.card,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: DS.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: DS.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: DS.action, width: 2),
+                    ),
+                  ),
+                  maxLines: 4,
+                  minLines: 3,
+                ),
+
+                const SizedBox(height: 24),
+
+                // Link (para Solicitação)
+                if (_selectedTipo == 'Solicitação') ...[
+                  const Text(
+                    'Link do Produto ou Especificação',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: DS.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _linkController,
+                    style: const TextStyle(color: DS.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'URL do produto ou especificações técnicas',
+                      hintStyle: const TextStyle(color: DS.textTertiary),
+                      prefixIcon: const Icon(
+                        Icons.link,
+                        color: DS.textSecondary,
+                      ),
+                      filled: true,
+                      fillColor: DS.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: DS.action,
+                          width: 2,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.check_circle,
-                                  size: 24,
-                                  color: Color(0xFF4CAF50),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${_selectedImages.length} imagem(ns) selecionada(s)',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // Grid de thumbnails
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 3,
-                                    crossAxisSpacing: 8,
-                                    mainAxisSpacing: 8,
-                                  ),
-                              itemCount: _selectedImages.length,
-                              itemBuilder: (context, index) {
-                                return Stack(
-                                  children: [
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                        ),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(
-                                          _selectedImages[index].path,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stack) {
-                                                return const Center(
-                                                  child: Icon(
-                                                    Icons.image,
-                                                    color: Colors.white54,
-                                                    size: 40,
-                                                  ),
-                                                );
-                                              },
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 4,
-                                      right: 4,
-                                      child: GestureDetector(
-                                        onTap: () => _removeImage(index),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.3,
-                                                ),
-                                                blurRadius: 4,
-                                              ),
-                                            ],
-                                          ),
-                                          child: const Icon(
-                                            Icons.close,
+                      ),
+                    ),
+                    maxLines: 2,
+                    minLines: 1,
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
-                                            size: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                // Anexos
+                const Text(
+                  'Anexar Foto (Opcional)',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: DS.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Galeria de imagens
+                if (_selectedImages.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: DS.card,
+                      border: Border.all(color: DS.action, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 24,
+                              color: DS.success,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${_selectedImages.length} imagem(ns) selecionada(s)',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: DS.textPrimary,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.camera),
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('Câmera'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDarkMode
-                                  ? Colors.white.withValues(alpha: 0.15)
-                                  : Colors.white,
-                              foregroundColor: isDarkMode
-                                  ? Colors.white
-                                  : Colors.black87,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: isDarkMode
-                                      ? Colors.white.withValues(alpha: 0.3)
-                                      : Colors.grey.shade300,
-                                  width: 2,
-                                ),
+                        const SizedBox(height: 12),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
                               ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.gallery),
-                            icon: const Icon(Icons.photo_library),
-                            label: const Text('Galeria'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDarkMode
-                                  ? Colors.white.withValues(alpha: 0.15)
-                                  : Colors.white,
-                              foregroundColor: isDarkMode
-                                  ? Colors.white
-                                  : Colors.black87,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: isDarkMode
-                                      ? Colors.white.withValues(alpha: 0.3)
-                                      : Colors.grey.shade300,
-                                  width: 2,
+                          itemCount: _selectedImages.length,
+                          itemBuilder: (context, index) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: DS.card,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: DS.border),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      _selectedImages[index].path,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stack) {
+                                        return const Center(
+                                          child: Icon(
+                                            Icons.image,
+                                            color: DS.textSecondary,
+                                            size: 40,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: GestureDetector(
+                                    onTap: () => _removeImage(index),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: DS.error,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
-                    // Botão Salvar
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submit,
+                // Botões câmera/galeria
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Câmera'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E88E5),
+                          backgroundColor: DS.card,
+                          foregroundColor: DS.textPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: DS.border, width: 2),
                           ),
-                          elevation: 4,
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'Criar Chamado',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _pickImage(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('Galeria'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: DS.card,
+                          foregroundColor: DS.textPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: DS.border, width: 2),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
+
+                const SizedBox(height: 32),
+
+                // Botão Criar
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DS.action,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Criar Chamado',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

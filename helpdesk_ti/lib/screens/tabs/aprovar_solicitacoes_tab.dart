@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:helpdesk_ti/core/theme/app_colors.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../../data/firestore_service.dart';
 import '../../widgets/solicitacao_card.dart';
@@ -40,29 +40,36 @@ class _AprovarSolicitacoesTabState extends State<AprovarSolicitacoesTab> {
     print('🏗️ APROVAR SOLICITAÇÕES - isManager: $isManager');
 
     if (!isManager) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.lock_outline,
-              size: 80,
-              color: Colors.red.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Acesso restrito',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text('Apenas gerentes podem aprovar solicitações'),
-          ],
+      return Container(
+        color: DS.background,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, size: 80, color: DS.error.withAlpha(77)),
+              const SizedBox(height: 16),
+              const Text(
+                'Acesso restrito',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Apenas gerentes podem aprovar solicitações',
+                style: TextStyle(fontFamily: 'Inter', color: DS.textSecondary),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: DS.background,
       body: StreamBuilder(
         stream: firestoreService.getSolicitacoesPendentesStream(),
         builder: (context, snapshot) {
@@ -77,7 +84,9 @@ class _AprovarSolicitacoesTabState extends State<AprovarSolicitacoesTab> {
           // Carregando
           if (snapshot.connectionState == ConnectionState.waiting) {
             print('⏳ Estado: CARREGANDO...');
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: DS.action),
+            );
           }
 
           // Erro
@@ -89,15 +98,26 @@ class _AprovarSolicitacoesTabState extends State<AprovarSolicitacoesTab> {
                   Icon(
                     Icons.error_outline,
                     size: 80,
-                    color: Colors.red.withValues(alpha: 0.3),
+                    color: DS.error.withAlpha(77),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Erro ao carregar solicitações',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: DS.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  Text('${snapshot.error}'),
+                  Text(
+                    '${snapshot.error}',
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      color: DS.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -112,15 +132,26 @@ class _AprovarSolicitacoesTabState extends State<AprovarSolicitacoesTab> {
                   Icon(
                     Icons.check_circle_outline,
                     size: 80,
-                    color: AppColors.primary.withValues(alpha: 0.3),
+                    color: DS.success.withAlpha(77),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Nenhuma solicitação pendente',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: DS.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  const Text('Todas as solicitações foram processadas'),
+                  const Text(
+                    'Todas as solicitações foram processadas',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      color: DS.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -173,7 +204,7 @@ class _AprovarSolicitacoesTabState extends State<AprovarSolicitacoesTab> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'aprovar_solicitacoes_fab',
         onPressed: _isRefreshing ? null : _refresh,
-        backgroundColor: _isRefreshing ? Colors.grey : AppColors.primary,
+        backgroundColor: _isRefreshing ? DS.textTertiary : DS.action,
         child: _isRefreshing
             ? const SizedBox(
                 width: 24,
@@ -183,11 +214,8 @@ class _AprovarSolicitacoesTabState extends State<AprovarSolicitacoesTab> {
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
-            : const Icon(Icons.refresh),
+            : const Icon(Icons.refresh, color: Colors.white),
       ),
     );
   }
 }
-
-
-

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
 import '../../data/firestore_service.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
-import '../../widgets/chamado/status_badge.dart';
 import '../../widgets/chamado/comentarios_paginados_widget.dart';
 import '../../widgets/avaliacao/avaliacao_chamado_widget.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 class TicketDetailsRefactored extends StatefulWidget {
   final Chamado chamado;
@@ -46,18 +44,18 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
   Color _getStatusColor() {
     switch (widget.chamado.status) {
       case 'Aberto':
-        return const Color(0xFF4CAF50);
+        return DS.success;
       case 'Em Andamento':
-        return const Color(0xFF2196F3);
+        return DS.action;
       case 'Pendente Aprovação':
       case 'Aguardando':
-        return const Color(0xFFFFA726);
+        return DS.warning;
       case 'Fechado':
-        return const Color(0xFF9E9E9E);
+        return DS.textSecondary;
       case 'Rejeitado':
-        return const Color(0xFFEF5350);
+        return DS.error;
       default:
-        return Colors.grey;
+        return DS.textSecondary;
     }
   }
 
@@ -79,15 +77,15 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
   Color _getPriorityColor(int prioridade) {
     switch (prioridade) {
       case 1:
-        return const Color(0xFF66BB6A);
+        return DS.success;
       case 2:
-        return const Color(0xFF42A5F5);
+        return DS.action;
       case 3:
-        return const Color(0xFFFF9800);
+        return DS.warning;
       case 4:
-        return const Color(0xFFEF5350);
+        return DS.error;
       default:
-        return Colors.blue;
+        return DS.action;
     }
   }
 
@@ -274,234 +272,342 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
     final isAdmin = widget.authService.userRole == 'admin';
     final canEditStatus = isAdmin && widget.chamado.status == 'Aberto';
     final canFinalize = isAdmin && widget.chamado.status == 'Em Andamento';
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return Scaffold(
-      body: Container(
-        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    IconButton(
+      backgroundColor: DS.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header - Apenas ID e lixeira
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: DS.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: DS.border, width: 1),
+                    ),
+                    child: IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back),
+                      icon: const Icon(Icons.arrow_back, color: DS.textPrimary),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.chamado.numeroFormatado,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87,
-                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.chamado.numeroFormatado,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: DS.textPrimary,
                       ),
                     ),
-                    // Botão de deletar (apenas para admin TI)
-                    if (isAdmin)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: IconButton(
-                          onPressed: () => _confirmarExclusao(context),
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.red,
-                            size: 28,
-                          ),
-                          tooltip: 'Deletar chamado',
-                        ),
+                  ),
+                  // Botão de deletar (apenas para admin TI)
+                  if (isAdmin)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: DS.error.withAlpha(26),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: DS.border, width: 1),
                       ),
+                      child: IconButton(
+                        onPressed: () => _confirmarExclusao(context),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: DS.error,
+                          size: 28,
+                        ),
+                        tooltip: 'Deletar chamado',
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // Conteúdo
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Card principal com informações
+                    _buildInfoCard(),
+                    const SizedBox(height: 16),
+
+                    // Prioridade do chamado
+                    _buildPriorityDisplay(),
+                    const SizedBox(height: 16),
+
+                    // Botões Aceitar/Recusar (apenas se Aberto)
+                    if (canEditStatus) ...[
+                      _buildActionButtons(canEditStatus, false),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Widget de avaliação (apenas para usuário comum em chamados fechados)
+                    if (!isAdmin && widget.chamado.status == 'Fechado')
+                      AvaliacaoChamadoWidget(
+                        chamado: widget.chamado,
+                        onAvaliacaoEnviada: () {
+                          // Pode recarregar a tela se necessário
+                        },
+                      ),
+
+                    // Seção de atualizações (sempre visível após aceitar o chamado)
+                    if (widget.chamado.status != 'Aberto') ...[
+                      _buildComentariosSection(),
+                    ],
+
+                    // Espaço extra para o botão fixo no rodapé
+                    if (canFinalize) const SizedBox(height: 80),
                   ],
                 ),
               ),
-
-              // Conteúdo
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Card principal com informações
-                      _buildInfoCard(),
-                      const SizedBox(height: 16),
-
-                      // Prioridade do chamado (apenas visualização, não editável)
-                      _buildPriorityDisplay(),
-                      const SizedBox(height: 16),
-
-                      // Botões de ação (admin pode aceitar/recusar se Aberto, ou finalizar se Em Andamento)
-                      if (canEditStatus || canFinalize) ...[
-                        _buildActionButtons(canEditStatus, canFinalize),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Widget de avaliação (apenas para usuário comum em chamados fechados)
-                      if (!isAdmin && widget.chamado.status == 'Fechado')
-                        AvaliacaoChamadoWidget(
-                          chamado: widget.chamado,
-                          onAvaliacaoEnviada: () {
-                            // Pode recarregar a tela se necessário
-                          },
-                        ),
-
-                      // Seção de atualizações (sempre visível após aceitar o chamado)
-                      if (widget.chamado.status != 'Aberto') ...[
-                        _buildComentariosSection(),
-                      ],
-                    ],
+            ),
+          ],
+        ),
+      ),
+      // Botão Finalizar Chamado fixo no rodapé
+      bottomNavigationBar: canFinalize
+          ? Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: DS.card,
+                border: Border(top: BorderSide(color: DS.border, width: 1)),
+              ),
+              child: SafeArea(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => _atualizarStatus('Fechado'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DS.action,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Text(
+                            'Finalizar Chamado',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : null,
     );
   }
 
   Widget _buildInfoCard() {
+    final statusColor = _getStatusColor();
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _getStatusColor().withValues(alpha: 0.5),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _getStatusColor().withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: DS.card,
+        borderRadius: BorderRadius.circular(DS.cardRadius),
+        border: Border.all(color: DS.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Data de criação
+          // Status e Prioridade Badges no topo
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.calendar_today, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                'Criado em ${DateFormat('dd/MM/yyyy \'\u00e0s\' HH:mm').format(widget.chamado.dataCriacao)}',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white70
-                      : Colors.grey.shade700,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withAlpha(38),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  widget.chamado.status,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _getPriorityColor(
+                    widget.chamado.prioridade,
+                  ).withAlpha(38),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _getPriorityLabel(widget.chamado.prioridade),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _getPriorityColor(widget.chamado.prioridade),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
 
-          // Última atualização
-          if (widget.chamado.dataAtualizacao != null)
+          // Datas
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 16,
+                color: DS.textTertiary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Criado em ${DateFormat('dd/MM/yyyy \'\u00e0s\' HH:mm').format(widget.chamado.dataCriacao)}',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  color: DS.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          if (widget.chamado.dataAtualizacao != null) ...[
+            const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.update, size: 16),
+                const Icon(
+                  Icons.update_outlined,
+                  size: 16,
+                  color: DS.textTertiary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Atualizado em ${DateFormat('dd/MM/yyyy \'\u00e0s\' HH:mm').format(widget.chamado.dataAtualizacao!)}',
-                  style: TextStyle(
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
                     fontSize: 13,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.grey.shade700,
+                    color: DS.textSecondary,
                   ),
                 ),
               ],
             ),
-          const SizedBox(height: 16),
+          ],
+          const SizedBox(height: 20),
 
-          // Status badge
-          StatusBadge(status: widget.chamado.status),
-          const SizedBox(height: 16),
-
-          // Título (sem prefixo SERVIÇO)
+          // Título
           Text(
             widget.chamado.titulo
                 .replaceFirst('Serviço - ', '')
                 .replaceFirst('Solicitação - ', ''),
-            style: TextStyle(
+            style: const TextStyle(
+              fontFamily: 'Inter',
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
+              color: DS.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Solicitante
-          _buildInfoRow(
-            Icons.person,
-            'Solicitante',
-            widget.chamado.usuarioNome,
-          ),
-          const SizedBox(height: 12),
-
-          // Responsável (se houver)
-          if (widget.chamado.adminNome != null &&
-              widget.chamado.adminNome!.isNotEmpty)
-            _buildInfoRow(
-              Icons.engineering,
-              'Responsável TI',
-              widget.chamado.adminNome!,
+          // Card de Pessoas (Solicitante, Responsável, Setor)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: DS.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: DS.border, width: 1),
             ),
-          const SizedBox(height: 12),
-
-          // Setor
-          _buildInfoRow(Icons.business, 'Setor', widget.chamado.setor),
-          const SizedBox(height: 16),
+            child: Column(
+              children: [
+                // Solicitante
+                _buildInfoRowCompact(
+                  Icons.person_outline,
+                  'Solicitante',
+                  widget.chamado.usuarioNome,
+                ),
+                const SizedBox(height: 16),
+                // Responsável TI (se houver)
+                if (widget.chamado.adminNome != null &&
+                    widget.chamado.adminNome!.isNotEmpty) ...[
+                  _buildInfoRowCompact(
+                    Icons.engineering_outlined,
+                    'Responsável TI',
+                    widget.chamado.adminNome!,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                // Setor
+                _buildInfoRowCompact(
+                  Icons.business_outlined,
+                  'Setor',
+                  widget.chamado.setor,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
 
           // Descrição
-          Text(
+          const Text(
             'Descrição',
             style: TextStyle(
+              fontFamily: 'Inter',
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
+              color: DS.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             widget.chamado.descricao,
-            style: TextStyle(
+            style: const TextStyle(
+              fontFamily: 'Inter',
               fontSize: 15,
-              height: 1.5,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
+              height: 1.6,
+              color: DS.textSecondary,
             ),
           ),
-
           // Anexos/Fotos (se houver)
           if (widget.chamado.anexos.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Anexos',
               style: TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black87,
+                color: DS.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -582,28 +688,35 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.2),
+                color: DS.error.withAlpha(38),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red, width: 1.5),
+                border: Border.all(color: DS.error, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.info, color: Colors.red, size: 18),
+                      Icon(Icons.info, color: DS.error, size: 18),
                       SizedBox(width: 8),
                       Text(
                         'Motivo da Rejeição',
                         style: TextStyle(
-                          color: Colors.red,
+                          fontFamily: 'Inter',
+                          color: DS.error,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(widget.chamado.motivoRejeicao!),
+                  Text(
+                    widget.chamado.motivoRejeicao!,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      color: DS.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -613,38 +726,35 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white70
-                      : Colors.grey.shade600,
-                ),
-              ),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black87,
-                ),
-              ),
-            ],
+  /// Widget compacto para informações agrupadas (ícones outlined)
+  Widget _buildInfoRowCompact(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: DS.textTertiary),
+          const SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              color: DS.textTertiary,
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: DS.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -657,16 +767,16 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withAlpha(100)),
+        color: DS.card,
+        borderRadius: BorderRadius.circular(DS.cardRadius),
+        border: Border.all(color: DS.border, width: 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withAlpha(50),
+              color: color.withAlpha(38),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(Icons.flag, color: color, size: 24),
@@ -676,19 +786,19 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Prioridade',
                   style: TextStyle(
+                    fontFamily: 'Inter',
                     fontSize: 12,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.black54,
+                    color: DS.textTertiary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   label,
                   style: TextStyle(
+                    fontFamily: 'Inter',
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: color,
@@ -714,13 +824,20 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                   onPressed: _isLoading
                       ? null
                       : () => _atualizarStatus('Em Andamento'),
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text('Aceitar'),
+                  icon: const Icon(Icons.check_circle, color: Colors.white),
+                  label: const Text(
+                    'Aceitar',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
+                    backgroundColor: DS.success,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(DS.buttonRadius),
                     ),
                   ),
                 ),
@@ -729,13 +846,20 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _isLoading ? null : _mostrarDialogoRejeicao,
-                  icon: const Icon(Icons.cancel),
-                  label: const Text('Recusar'),
+                  icon: const Icon(Icons.cancel, color: Colors.white),
+                  label: const Text(
+                    'Recusar',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF5350),
+                    backgroundColor: DS.error,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(DS.buttonRadius),
                     ),
                   ),
                 ),
@@ -752,13 +876,20 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : () => _atualizarStatus('Fechado'),
-              icon: const Icon(Icons.done_all),
-              label: const Text('Finalizar Chamado'),
+              icon: const Icon(Icons.done_all, color: Colors.white),
+              label: const Text(
+                'Finalizar Chamado',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
+                backgroundColor: DS.action,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(DS.buttonRadius),
                 ),
               ),
             ),
@@ -768,19 +899,14 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
   }
 
   Widget _buildComentariosSection() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isClosed = widget.chamado.status == 'Fechado';
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode
-            ? Colors.white.withAlpha(8)
-            : Colors.white.withAlpha(200),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode ? Colors.white.withAlpha(15) : Colors.grey.shade200,
-        ),
+        color: DS.card,
+        borderRadius: BorderRadius.circular(DS.cardRadius),
+        border: Border.all(color: DS.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,16 +917,12 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? const Color(0xFF2196F3).withAlpha(30)
-                      : const Color(0xFF2196F3).withAlpha(20),
+                  color: DS.action.withAlpha(38),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.chat_bubble_outline,
-                  color: isDarkMode
-                      ? const Color(0xFF64B5F6)
-                      : const Color(0xFF2196F3),
+                  color: DS.action,
                   size: 24,
                 ),
               ),
@@ -809,23 +931,23 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Conversa',
                       style: TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDarkMode ? Colors.white : Colors.black87,
+                        color: DS.textPrimary,
                       ),
                     ),
                     Text(
                       isClosed
                           ? 'Este chamado foi encerrado'
                           : 'Troque mensagens com a TI',
-                      style: TextStyle(
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 12,
-                        color: isDarkMode
-                            ? Colors.white54
-                            : Colors.grey.shade600,
+                        color: DS.textSecondary,
                       ),
                     ),
                   ],
@@ -839,8 +961,8 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                 ),
                 decoration: BoxDecoration(
                   color: isClosed
-                      ? Colors.grey.withAlpha(50)
-                      : Colors.green.withAlpha(30),
+                      ? DS.textTertiary.withAlpha(38)
+                      : DS.success.withAlpha(38),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -849,15 +971,16 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                     Icon(
                       isClosed ? Icons.lock : Icons.circle,
                       size: isClosed ? 14 : 8,
-                      color: isClosed ? Colors.grey : Colors.green,
+                      color: isClosed ? DS.textTertiary : DS.success,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       isClosed ? 'Encerrado' : 'Ativo',
                       style: TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: isClosed ? Colors.grey : Colors.green,
+                        color: isClosed ? DS.textTertiary : DS.success,
                       ),
                     ),
                   ],
@@ -869,7 +992,7 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
           const SizedBox(height: 16),
 
           // Divider
-          Divider(color: isDarkMode ? Colors.white12 : Colors.grey.shade200),
+          const Divider(color: DS.border),
 
           const SizedBox(height: 12),
 
@@ -888,31 +1011,22 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDarkMode
-                    ? Colors.grey.withAlpha(30)
-                    : Colors.grey.shade100,
+                color: DS.border,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDarkMode
-                      ? Colors.grey.withAlpha(50)
-                      : Colors.grey.shade300,
-                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: const Row(
                 children: [
-                  Icon(
-                    Icons.lock_outline,
-                    size: 18,
-                    color: isDarkMode ? Colors.white38 : Colors.grey.shade500,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Chamado fechado. Não é possível enviar mensagens.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDarkMode ? Colors.white38 : Colors.grey.shade600,
-                      fontStyle: FontStyle.italic,
+                  Icon(Icons.lock_outline, size: 18, color: DS.textTertiary),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Chamado fechado. Não é possível enviar mensagens.',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        color: DS.textTertiary,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ),
                 ],
@@ -922,15 +1036,9 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             // Campo de entrada de mensagem (estilo WhatsApp)
             Container(
               decoration: BoxDecoration(
-                color: isDarkMode
-                    ? Colors.white.withAlpha(10)
-                    : Colors.grey.shade100,
+                color: DS.background,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isDarkMode
-                      ? Colors.white.withAlpha(20)
-                      : Colors.grey.shade300,
-                ),
+                border: Border.all(color: DS.border, width: 1),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -942,22 +1050,22 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                       maxLines: 4,
                       minLines: 1,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Digite sua mensagem...',
                         hintStyle: TextStyle(
-                          color: isDarkMode
-                              ? Colors.white38
-                              : Colors.grey.shade500,
+                          fontFamily: 'Inter',
+                          color: DS.textTertiary,
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
+                        contentPadding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
                         ),
                       ),
-                      style: TextStyle(
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 15,
-                        color: isDarkMode ? Colors.white : Colors.black87,
+                        color: DS.textPrimary,
                       ),
                     ),
                   ),
@@ -966,7 +1074,7 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                   Padding(
                     padding: const EdgeInsets.only(right: 4, bottom: 4),
                     child: Material(
-                      color: const Color(0xFF2196F3),
+                      color: DS.action,
                       borderRadius: BorderRadius.circular(20),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(20),

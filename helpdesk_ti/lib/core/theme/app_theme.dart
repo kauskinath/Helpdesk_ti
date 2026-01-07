@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// Definição de temas da aplicação (Claro e Escuro)
@@ -23,7 +24,6 @@ class AppTheme {
 
   /// Tema claro (padrão)
   static ThemeData get lightTheme {
-    // Cores fixas para consistência entre versões Android
     const primaryColor = AppColors.primary;
     const backgroundColor = AppColors.greyLight;
     const surfaceColor = Colors.white;
@@ -57,7 +57,6 @@ class AppTheme {
         outline: AppColors.grey,
         shadow: Colors.black26,
       ),
-
       // Cores principais
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
@@ -187,41 +186,50 @@ class AppTheme {
       // Ícones
       iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
 
-      // Tipografia
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(
+      // Tipografia global: Inter
+      textTheme: GoogleFonts.interTextTheme().copyWith(
+        displayLarge: GoogleFonts.inter(
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        displayMedium: TextStyle(
+        displayMedium: GoogleFonts.inter(
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        displaySmall: TextStyle(
+        displaySmall: GoogleFonts.inter(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
-        headlineMedium: TextStyle(
+        headlineMedium: GoogleFonts.inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        headlineSmall: TextStyle(
+        headlineSmall: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        titleLarge: TextStyle(
+        titleLarge: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        bodyLarge: TextStyle(fontSize: 16, color: AppColors.textPrimary),
-        bodyMedium: TextStyle(fontSize: 14, color: AppColors.textPrimary),
-        bodySmall: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        bodyLarge: GoogleFonts.inter(
+          fontSize: 16,
+          color: AppColors.textPrimary,
+        ),
+        bodyMedium: GoogleFonts.inter(
+          fontSize: 14,
+          color: AppColors.textPrimary,
+        ),
+        bodySmall: GoogleFonts.inter(
+          fontSize: 12,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
@@ -408,41 +416,41 @@ class AppTheme {
       // Ícones
       iconTheme: const IconThemeData(color: darkTextPrimary, size: 24),
 
-      // Tipografia
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(
+      // Tipografia global: Inter
+      textTheme: GoogleFonts.interTextTheme().copyWith(
+        displayLarge: GoogleFonts.inter(
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: darkTextPrimary,
         ),
-        displayMedium: TextStyle(
+        displayMedium: GoogleFonts.inter(
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: darkTextPrimary,
         ),
-        displaySmall: TextStyle(
+        displaySmall: GoogleFonts.inter(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: darkTextPrimary,
         ),
-        headlineMedium: TextStyle(
+        headlineMedium: GoogleFonts.inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: darkTextPrimary,
         ),
-        headlineSmall: TextStyle(
+        headlineSmall: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: darkTextPrimary,
         ),
-        titleLarge: TextStyle(
+        titleLarge: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: darkTextPrimary,
         ),
-        bodyLarge: TextStyle(fontSize: 16, color: darkTextPrimary),
-        bodyMedium: TextStyle(fontSize: 14, color: darkTextPrimary),
-        bodySmall: TextStyle(fontSize: 12, color: darkTextSecondary),
+        bodyLarge: GoogleFonts.inter(fontSize: 16, color: darkTextPrimary),
+        bodyMedium: GoogleFonts.inter(fontSize: 14, color: darkTextPrimary),
+        bodySmall: GoogleFonts.inter(fontSize: 12, color: darkTextSecondary),
       ),
     );
   }

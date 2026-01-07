@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:helpdesk_ti/shared/widgets/wallpaper_scaffold.dart';
 import '../../services/manutencao_service.dart';
@@ -119,17 +120,17 @@ class _ManutencaoAprovarOrcamentoScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // DS cores usadas diretamente
 
     return WallpaperScaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Aprovar Orçamento',
-          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+          style: TextStyle(color: DS.textPrimary),
         ),
-        backgroundColor: Colors.black.withValues(alpha: 0.3),
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : Colors.black87,
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(
+          color: DS.textPrimary,
         ),
       ),
       body: SingleChildScrollView(
@@ -450,3 +451,5 @@ class _ManutencaoAprovarOrcamentoScreenState
     return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
   }
 }
+
+

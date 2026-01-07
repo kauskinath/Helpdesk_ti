@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 /// Layout base para todas as dashboards do sistema (TI e Manutenção)
 ///
 /// Fornece estrutura consistente com:
-/// - Wallpaper (claro/escuro) baseado no tema
-/// - Botão de tema no canto superior esquerdo
-/// - Menu hambúrguer organizado por categorias
-/// - AppBar transparente sobre o wallpaper
+/// - Fundo escuro fixo usando DS (Design System)
+/// - Menu popup (3 pontinhos) organizado por categorias
+/// - Header com saudação personalizada
 class BaseDashboardLayout extends StatelessWidget {
   final String title;
   final String titleEmoji;
@@ -16,7 +14,6 @@ class BaseDashboardLayout extends StatelessWidget {
   final Widget body;
   final List<MenuCategory> menuCategories;
   final FloatingActionButton? floatingActionButton;
-  final bool showThemeToggle;
   final bool showMenu;
   final bool showHeader;
   final String? userName;
@@ -29,7 +26,6 @@ class BaseDashboardLayout extends StatelessWidget {
     required this.body,
     required this.menuCategories,
     this.floatingActionButton,
-    this.showThemeToggle = true,
     this.showMenu = true,
     this.showHeader = true,
     this.userName,
@@ -37,24 +33,22 @@ class BaseDashboardLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
-
-    // Se showHeader é false, não renderiza wallpaper nem scaffold
+    // Se showHeader é false, não renderiza scaffold
     // (usado quando é uma sub-tela dentro de outro dashboard)
     if (!showHeader) {
       return Column(children: [Expanded(child: body)]);
     }
 
-    // Modo normal: com cor sólida e header
+    // Modo normal: com DS e header
     return Container(
-      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+      color: DS.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Column(
             children: [
-              // Header com tema + menu
-              _buildHeader(context, isDarkMode),
+              // Header com menu
+              _buildHeader(context),
               // Body customizável
               Expanded(child: body),
             ],
@@ -65,7 +59,7 @@ class BaseDashboardLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDarkMode) {
+  Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -81,16 +75,18 @@ class BaseDashboardLayout extends StatelessWidget {
                       Text(
                         'Olá, $userName!',
                         style: const TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: DS.textPrimary,
                         ),
                       ),
                       Text(
                         '$titleEmoji $title',
                         style: const TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 14,
-                          color: Colors.white70,
+                          color: DS.textSecondary,
                         ),
                       ),
                     ],
@@ -99,96 +95,78 @@ class BaseDashboardLayout extends StatelessWidget {
                     child: Text(
                       '$titleEmoji $title',
                       style: const TextStyle(
-                        color: Colors.white,
+                        fontFamily: 'Inter',
+                        color: DS.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        shadows: [
-                          Shadow(
-                            offset: Offset(0, 2),
-                            blurRadius: 4,
-                            color: Colors.black45,
-                          ),
-                        ],
                       ),
                     ),
                   ),
           ),
 
-          // Botão de tema ao lado do menu
-          if (showThemeToggle)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: IconButton(
-                icon: Icon(
-                  isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                  color: Colors.white,
-                ),
-                tooltip: isDarkMode ? 'Tema Claro' : 'Tema Escuro',
-                onPressed: () {
-                  context.read<ThemeProvider>().toggleTheme();
-                },
-              ),
-            ),
-
           // Menu popup moderno (3 pontinhos)
           if (showMenu)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            Container(
+              decoration: BoxDecoration(
+                color: DS.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: DS.border, width: 1),
               ),
-              offset: const Offset(0, 50),
-              onSelected: (String value) {
-                // Encontrar o item pelo value e executar seu onTap
-                for (var category in menuCategories) {
-                  final item = category.items.firstWhere(
-                    (item) => item.value == value,
-                    orElse: () =>
-                        const MenuItem(value: '', emoji: '', label: ''),
-                  );
-                  if (item.value == value && item.onTap != null) {
-                    item.onTap!(context);
-                    break;
-                  }
-                }
-              },
-              itemBuilder: (context) {
-                final List<PopupMenuEntry<String>> menuItems = [];
-
-                for (int i = 0; i < menuCategories.length; i++) {
-                  final category = menuCategories[i];
-
-                  // Adicionar items da categoria
-                  for (var item in category.items) {
-                    menuItems.add(
-                      PopupMenuItem<String>(
-                        value: item.value,
-                        child: Row(
-                          children: [
-                            Icon(
-                              item.icon ?? Icons.circle,
-                              size: 20,
-                              color: category.color,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(item.label),
-                          ],
-                        ),
-                      ),
+              child: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: DS.textPrimary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                offset: const Offset(0, 50),
+                onSelected: (String value) {
+                  // Encontrar o item pelo value e executar seu onTap
+                  for (var category in menuCategories) {
+                    final item = category.items.firstWhere(
+                      (item) => item.value == value,
+                      orElse: () =>
+                          const MenuItem(value: '', emoji: '', label: ''),
                     );
+                    if (item.value == value && item.onTap != null) {
+                      item.onTap!(context);
+                      break;
+                    }
+                  }
+                },
+                itemBuilder: (context) {
+                  final List<PopupMenuEntry<String>> menuItems = [];
+
+                  for (int i = 0; i < menuCategories.length; i++) {
+                    final category = menuCategories[i];
+
+                    // Adicionar items da categoria
+                    for (var item in category.items) {
+                      menuItems.add(
+                        PopupMenuItem<String>(
+                          value: item.value,
+                          child: Row(
+                            children: [
+                              Icon(
+                                item.icon ?? Icons.circle,
+                                size: 20,
+                                color: category.color,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(item.label),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Adicionar divider entre categorias (exceto após a última)
+                    if (i < menuCategories.length - 1) {
+                      menuItems.add(const PopupMenuDivider());
+                    }
                   }
 
-                  // Adicionar divider entre categorias (exceto após a última)
-                  if (i < menuCategories.length - 1) {
-                    menuItems.add(const PopupMenuDivider());
-                  }
-                }
-
-                return menuItems;
-              },
+                  return menuItems;
+                },
+              ),
             ),
         ],
       ),

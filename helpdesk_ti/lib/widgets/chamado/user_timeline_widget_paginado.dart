@@ -179,7 +179,7 @@ class _UserTimelineWidgetPaginadoState
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: Text(
-              'Mostrando ${_comentarios.length} de $_totalComentarios comentários',
+              'Mostrando ${_comentarios.length} de $_totalComentarios mensagens',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 13,
@@ -217,7 +217,7 @@ class _UserTimelineWidgetPaginadoState
               child: OutlinedButton.icon(
                 onPressed: _carregarProximaPagina,
                 icon: const Icon(Icons.expand_more),
-                label: const Text('Carregar Mais Comentários'),
+                label: const Text('Carregar Mais Mensagens'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -233,7 +233,7 @@ class _UserTimelineWidgetPaginadoState
           Padding(
             padding: const EdgeInsets.only(top: 16.0),
             child: Text(
-              '✓ Todos os comentários carregados',
+              '✓ Todas as mensagens carregadas',
               style: TextStyle(color: Colors.grey[500], fontSize: 13),
               textAlign: TextAlign.center,
             ),
@@ -469,5 +469,3 @@ class _UserTimelineWidgetPaginadoState
     }
   }
 }
-
-

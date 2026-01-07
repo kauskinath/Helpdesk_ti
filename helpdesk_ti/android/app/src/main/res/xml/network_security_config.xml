@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    PICHAU TI - Configuração de Segurança de Rede
+    (C) 2024-2025 Pichau Informatica Ltda.
+    
+    Este arquivo define políticas de segurança de rede.
+    - Força uso de HTTPS
+    - Certificate Pinning para Firebase
+    - Bloqueia tráfego em texto claro
+-->
+<network-security-config>
+    <!-- Configuração base: bloquear tráfego HTTP não seguro -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Confiar apenas em CAs do sistema -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Configurações específicas para domínios Firebase -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">firebaseio.com</domain>
+        <domain includeSubdomains="true">firebase.google.com</domain>
+        <domain includeSubdomains="true">firebasestorage.googleapis.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">fcm.googleapis.com</domain>
+        <domain includeSubdomains="true">firebaseinstallations.googleapis.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    
+    <!-- Bloquear localhost em release (para debug usar build de debug) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

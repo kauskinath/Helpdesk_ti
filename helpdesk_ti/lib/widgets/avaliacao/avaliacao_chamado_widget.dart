@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/data/firestore_service.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
 import 'package:helpdesk_ti/features/ti/models/avaliacao.dart';
@@ -247,21 +247,16 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
       return const SizedBox.shrink();
     }
 
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    // DS cores usadas diretamente
 
     if (_carregando) {
       return Container(
         margin: const EdgeInsets.only(top: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: cardColor,
+          color: DS.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.amber.withValues(alpha: 0.5),
-            width: 2,
-          ),
+          border: Border.all(color: Colors.amber.withAlpha(128), width: 2),
         ),
         child: const Center(
           child: CircularProgressIndicator(color: Colors.amber),
@@ -272,19 +267,17 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
     return Container(
       margin: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: DS.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _avaliacaoExistente != null
-              ? _getCorParaNota(
-                  _avaliacaoExistente!.nota,
-                ).withValues(alpha: 0.5)
-              : Colors.amber.withValues(alpha: 0.5),
+              ? _getCorParaNota(_avaliacaoExistente!.nota).withAlpha(128)
+              : Colors.amber.withAlpha(128),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withValues(alpha: 0.2),
+            color: Colors.amber.withAlpha(51),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -326,10 +319,10 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                           _avaliacaoExistente != null
                               ? 'Sua Avaliação'
                               : 'Avaliar Atendimento',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: textColor,
+                            color: DS.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -353,13 +346,12 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                             ],
                           )
                         else
-                          Text(
+                          const Text(
                             'Como foi o atendimento?',
                             style: TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 14,
-                              color: isDarkMode
-                                  ? Colors.white70
-                                  : Colors.grey.shade600,
+                              color: DS.textSecondary,
                             ),
                           ),
                       ],
@@ -370,9 +362,9 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                   AnimatedRotation(
                     turns: _isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 300),
-                    child: Icon(
+                    child: const Icon(
                       Icons.keyboard_arrow_down,
-                      color: isDarkMode ? Colors.white70 : Colors.grey,
+                      color: DS.textSecondary,
                       size: 28,
                     ),
                   ),
@@ -411,9 +403,7 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                               isSelected ? Icons.star : Icons.star_border,
                               color: isSelected
                                   ? Colors.amber
-                                  : (isDarkMode
-                                        ? Colors.grey.shade600
-                                        : Colors.grey.shade400),
+                                  : (DS.textSecondary),
                               size: 44,
                             ),
                           ),
@@ -438,13 +428,12 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                         Text(
                           _getDescricaoParaNota(_notaSelecionada),
                           style: TextStyle(
+                            fontFamily: 'Inter',
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: _notaSelecionada > 0
                                 ? _getCorParaNota(_notaSelecionada)
-                                : (isDarkMode
-                                      ? Colors.white70
-                                      : Colors.grey.shade600),
+                                : DS.textSecondary,
                           ),
                         ),
                       ],
@@ -456,18 +445,18 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                   TextField(
                     controller: _comentarioController,
                     maxLines: 3,
-                    style: TextStyle(color: textColor),
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      color: DS.textPrimary,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Deixe um comentário (opcional)',
-                      hintStyle: TextStyle(
-                        color: isDarkMode
-                            ? Colors.white54
-                            : Colors.grey.shade500,
+                      hintStyle: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: DS.textSecondary,
                       ),
                       filled: true,
-                      fillColor: isDarkMode
-                          ? Colors.grey.shade900
-                          : Colors.grey.shade100,
+                      fillColor: DS.card,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -517,7 +506,7 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                           borderRadius: BorderRadius.circular(12),
                         ),
                         disabledBackgroundColor: Colors.amber.shade600
-                            .withValues(alpha: 0.6),
+                            .withAlpha(153),
                       ),
                     ),
                   ),
@@ -527,11 +516,10 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
                     const SizedBox(height: 12),
                     Text(
                       'Avaliado em ${_formatarData(_avaliacaoExistente!.dataAvaliacao)}',
-                      style: TextStyle(
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 12,
-                        color: isDarkMode
-                            ? Colors.white54
-                            : Colors.grey.shade600,
+                        color: DS.textSecondary,
                       ),
                     ),
                   ],
@@ -557,3 +545,4 @@ class _AvaliacaoChamadoWidgetState extends State<AvaliacaoChamadoWidget>
     }
   }
 }
+

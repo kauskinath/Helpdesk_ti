@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../../services/manutencao_service.dart';
 import '../../models/chamado_manutencao_model.dart';
@@ -96,17 +97,17 @@ class _ManutencaoValidarChamadoScreenState
   @override
   Widget build(BuildContext context) {
     final chamado = widget.chamado;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // DS cores usadas diretamente
 
     return WallpaperScaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           '🔍 Validar Chamado',
-          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+          style: TextStyle(color: DS.textPrimary),
         ),
-        backgroundColor: Colors.black.withValues(alpha: 0.3),
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : Colors.black87,
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(
+          color: DS.textPrimary,
         ),
       ),
       body: _isLoading
@@ -306,3 +307,5 @@ class _ManutencaoValidarChamadoScreenState
     return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
   }
 }
+
+

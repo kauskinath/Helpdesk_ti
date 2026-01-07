@@ -23,7 +23,12 @@
     <application
         android:label="PICHAU TI"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:hasFragileUserData="true"
+        android:networkSecurityConfig="@xml/network_security_config">
         
         <!-- Informacoes de Copyright e Desenvolvedor -->
         <meta-data

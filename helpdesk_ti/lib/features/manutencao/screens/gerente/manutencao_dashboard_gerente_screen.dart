@@ -5,6 +5,7 @@ import '../../models/manutencao_enums.dart';
 import '../../widgets/manutencao_card.dart';
 import '../comum/manutencao_detalhes_chamado_screen.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/shared/widgets/base_dashboard_layout.dart';
 
 /// Dashboard do Gerente Manutenção - Aprovação de Orçamentos
@@ -128,22 +129,26 @@ class _ManutencaoDashboardGerenteScreenState
               margin: const EdgeInsets.all(12.0),
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
-                color: Colors.teal.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.teal.shade300),
+                color: DS.info.withAlpha(26),
+                borderRadius: BorderRadius.circular(DS.cardRadius),
+                border: Border.all(color: DS.info.withAlpha(77)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.filter_alt, color: Colors.teal.shade700),
+                  const Icon(Icons.filter_alt, color: DS.info),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Filtrando por: ${_filtroStatus!.label}',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        color: DS.textPrimary,
+                      ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, color: DS.textSecondary),
                     onPressed: () {
                       setState(() => _filtroStatus = null);
                     },
@@ -162,21 +167,18 @@ class _ManutencaoDashboardGerenteScreenState
                 }
 
                 if (snapshot.hasError) {
-                  return Center(
+                  return const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.red.shade300,
-                        ),
-                        const SizedBox(height: 16),
+                        Icon(Icons.error_outline, size: 64, color: DS.error),
+                        SizedBox(height: 16),
                         Text(
                           'Erro ao carregar orçamentos',
                           style: TextStyle(
+                            fontFamily: 'Inter',
                             fontSize: 18,
-                            color: Colors.grey.shade700,
+                            color: DS.textSecondary,
                           ),
                         ),
                       ],
@@ -201,21 +203,22 @@ class _ManutencaoDashboardGerenteScreenState
                 }
 
                 if (chamados.isEmpty) {
-                  return Center(
+                  return const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.attach_money,
-                          color: Colors.grey.shade400,
+                          color: DS.textSecondary,
                           size: 64,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         Text(
                           'Nenhum orçamento encontrado',
                           style: TextStyle(
+                            fontFamily: 'Inter',
                             fontSize: 18,
-                            color: Colors.grey.shade600,
+                            color: DS.textSecondary,
                           ),
                         ),
                       ],

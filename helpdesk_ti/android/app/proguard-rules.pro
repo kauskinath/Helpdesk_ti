@@ -1,19 +1,26 @@
 # Regras de Ofuscacao ProGuard - PICHAU TI
+# PROTEÇÃO MÁXIMA CONTRA ENGENHARIA REVERSA
 # Este arquivo define como o codigo sera ofuscado e otimizado no build de release
 
-# ========== CONFIGURACOES GERAIS ==========
+# ========== CONFIGURACOES DE OFUSCAÇÃO AGRESSIVA ==========
 
-# Manter informacoes de linha de codigo para stack traces
+# Ofuscar TUDO que for possível
+-repackageclasses ''
+-allowaccessmodification
+-flattenpackagehierarchy ''
+
+# Renomear pacotes para dificultar análise
+-obfuscationdictionary proguard-dict.txt
+-classobfuscationdictionary proguard-dict.txt
+-packageobfuscationdictionary proguard-dict.txt
+
+# Múltiplas passagens de otimização
+-optimizationpasses 10
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+
+# Manter informacoes mínimas de linha (para crash reports)
 -keepattributes SourceFile,LineNumberTable
-
-# Manter anotacoes
--keepattributes *Annotation*
-
-# Manter assinaturas genericas
--keepattributes Signature
-
-# Manter excecoes
--keepattributes Exceptions
+-renamesourcefileattribute SourceFile
 
 # ========== IGNORAR AVISOS DE CLASSES OPCIONAIS ==========
 
@@ -159,14 +166,38 @@
 -dontwarn javax.annotation.**
 -dontwarn com.google.auto.value.**
 
-# ========== PROTEÇÃO ADICIONAL ==========
+# ========== PROTEÇÃO MÁXIMA ==========
 
-# Ofuscar nomes de classes, métodos e campos
--repackageclasses 'com.pichau.obf'
+# Ofuscar nomes de classes, métodos e campos agressivamente
+-repackageclasses 'a'
 -allowaccessmodification
+-flattenpackagehierarchy 'a'
 
-# Remover código não usado
+# Remover TODO código não usado
 -dontshrink
+
+# Remover TODOS os logs em produção
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+    public static *** wtf(...);
+}
+
+# Remover prints do Dart/Kotlin
+-assumenosideeffects class java.io.PrintStream {
+    public void println(...);
+    public void print(...);
+}
+
+# Remover assertions
+-assumenosideeffects class java.lang.Class {
+    public java.lang.String getSimpleName();
+    public java.lang.String getName();
+    public java.lang.String getCanonicalName();
+}
 
 # ========== COPYRIGHT ==========
 # © 2024-2025 Pichau Informática Ltda

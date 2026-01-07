@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/manutencao_service.dart';
 import 'package:helpdesk_ti/shared/widgets/wallpaper_scaffold.dart';
@@ -49,24 +50,19 @@ class _ManutencaoDashboardStatsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // DS cores usadas diretamente
 
     return WallpaperScaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           '📊 Estatísticas Manutenção',
-          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+          style: TextStyle(color: DS.textPrimary),
         ),
-        backgroundColor: Colors.black.withValues(alpha: 0.3),
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : Colors.black87,
-        ),
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: DS.textPrimary),
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.refresh,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
+            icon: const Icon(Icons.refresh, color: DS.textPrimary),
             onPressed: _carregarDados,
             tooltip: 'Atualizar',
           ),
@@ -160,25 +156,12 @@ class _ManutencaoDashboardStatsScreenState
     required IconData icone,
     required Color cor,
   }) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: isDarkMode
-            ? Border.all(color: Colors.white.withValues(alpha: 0.1))
-            : null,
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        color: DS.card,
+        borderRadius: BorderRadius.circular(DS.cardRadius),
+        border: Border.all(color: DS.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +171,7 @@ class _ManutencaoDashboardStatsScreenState
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: cor.withValues(alpha: 0.1),
+                  color: cor.withAlpha(26),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icone, color: cor, size: 20),
@@ -197,9 +180,10 @@ class _ManutencaoDashboardStatsScreenState
               Expanded(
                 child: Text(
                   titulo,
-                  style: TextStyle(
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
                     fontSize: 13,
-                    color: isDarkMode ? Colors.white70 : Colors.grey.shade600,
+                    color: DS.textSecondary,
                   ),
                 ),
               ),
@@ -208,10 +192,11 @@ class _ManutencaoDashboardStatsScreenState
           const SizedBox(height: 12),
           Text(
             valor,
-            style: TextStyle(
+            style: const TextStyle(
+              fontFamily: 'Inter',
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
+              color: DS.textPrimary,
             ),
           ),
         ],

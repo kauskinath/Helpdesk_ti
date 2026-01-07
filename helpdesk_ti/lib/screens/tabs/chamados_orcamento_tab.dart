@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import '../../data/firestore_service.dart';
 import '../../widgets/ticket_card_v2.dart';
 import '../chamado/ticket_details_refactored.dart';
@@ -37,46 +37,47 @@ class _ChamadosOrcamentoTabState extends State<ChamadosOrcamentoTab> {
   Widget build(BuildContext context) {
     final firestoreService = context.read<FirestoreService>();
     final authService = context.read<AuthService>();
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     final isManager = authService.userRole == 'manager';
 
     print('💰 CHAMADOS COM ORÇAMENTO - Role: ${authService.userRole}');
     print('💰 CHAMADOS COM ORÇAMENTO - isManager: $isManager');
 
     if (!isManager) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.lock_outline,
-              size: 80,
-              color: Colors.red.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Acesso Restrito',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.grey[800],
+      return Container(
+        color: DS.background,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.lock_outline,
+                size: 80,
+                color: DS.error.withAlpha(102),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Apenas gerentes podem visualizar chamados com orçamento',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDarkMode ? Colors.grey : Colors.grey[600],
+              const SizedBox(height: 16),
+              const Text(
+                'Acesso Restrito',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              const Text(
+                'Apenas gerentes podem visualizar chamados com orçamento',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'Inter', color: DS.textSecondary),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: DS.background,
       body: StreamBuilder(
         stream: firestoreService.getTodosChamadosStream(),
         builder: (context, snapshot) {
@@ -86,7 +87,9 @@ class _ChamadosOrcamentoTabState extends State<ChamadosOrcamentoTab> {
 
           // Carregando
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: DS.action),
+            );
           }
 
           // Erro
@@ -99,23 +102,25 @@ class _ChamadosOrcamentoTabState extends State<ChamadosOrcamentoTab> {
                   Icon(
                     Icons.error_outline,
                     size: 80,
-                    color: Colors.red.withValues(alpha: 0.4),
+                    color: DS.error.withAlpha(102),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Erro ao carregar chamados',
                     style: TextStyle(
+                      fontFamily: 'Inter',
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.grey[800],
+                      color: DS.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     snapshot.error.toString(),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.grey : Colors.grey[600],
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      color: DS.textSecondary,
                     ),
                   ),
                 ],
@@ -165,25 +170,25 @@ class _ChamadosOrcamentoTabState extends State<ChamadosOrcamentoTab> {
                   Icon(
                     Icons.request_quote,
                     size: 80,
-                    color: isDarkMode
-                        ? Colors.blue.withValues(alpha: 0.3)
-                        : Colors.blue.withValues(alpha: 0.5),
+                    color: DS.action.withAlpha(77),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Nenhum chamado com orçamento',
                     style: TextStyle(
+                      fontFamily: 'Inter',
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.grey[800],
+                      color: DS.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'Quando houver chamados TI com orçamento\npara aprovação, eles aparecerão aqui',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: isDarkMode ? Colors.grey : Colors.grey[600],
+                      fontFamily: 'Inter',
+                      color: DS.textSecondary,
                     ),
                   ),
                 ],
@@ -207,8 +212,8 @@ class _ChamadosOrcamentoTabState extends State<ChamadosOrcamentoTab> {
                     status: chamado.status,
                     prioridade: chamado.prioridade,
                     usuarioNome: chamado.usuarioNome,
+                    setorNome: chamado.setor,
                     lastUpdated: chamado.lastUpdated,
-                    numeroComentarios: chamado.numeroComentarios,
                     temAnexos: chamado.temAnexos,
                     onTap: () {
                       Navigator.push(

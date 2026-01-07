@@ -1,30 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 class StatusBadge extends StatelessWidget {
   final String status;
   final double fontSize;
 
-  const StatusBadge({
-    super.key,
-    required this.status,
-    this.fontSize = 14,
-  });
+  const StatusBadge({super.key, required this.status, this.fontSize = 14});
 
   Color _getStatusColor() {
     switch (status) {
       case 'Aberto':
-        return const Color(0xFF4CAF50);
+        return DS.success;
       case 'Em Andamento':
-        return const Color(0xFF2196F3);
+        return DS.action;
       case 'Pendente Aprovação':
       case 'Aguardando':
-        return const Color(0xFFFFA726);
+        return DS.warning;
       case 'Fechado':
-        return const Color(0xFF9E9E9E);
+        return DS.textSecondary;
       case 'Rejeitado':
-        return const Color(0xFFEF5350);
+        return DS.error;
       default:
-        return Colors.grey;
+        return DS.textSecondary;
     }
   }
 
@@ -49,13 +46,13 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _getStatusColor();
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withAlpha(38),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color, width: 1.5),
+        border: Border.all(color: color, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -65,6 +62,7 @@ class StatusBadge extends StatelessWidget {
           Text(
             status,
             style: TextStyle(
+              fontFamily: 'Inter',
               color: color,
               fontSize: fontSize,
               fontWeight: FontWeight.w600,

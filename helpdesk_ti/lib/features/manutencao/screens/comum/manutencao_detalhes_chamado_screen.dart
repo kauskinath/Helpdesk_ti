@@ -7,7 +7,7 @@ import '../../services/manutencao_service.dart';
 import '../../models/chamado_manutencao_model.dart';
 import '../../models/manutencao_enums.dart';
 import '../../widgets/avaliacao_manutencao_widget.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../executor/manutencao_executar_screen.dart';
 import '../admin/manutencao_validar_chamado_screen.dart';
@@ -22,7 +22,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final manutencaoService = ManutencaoService();
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     final authService = context.watch<AuthService>();
     final isAdminManutencao = authService.userRole == 'admin_manutencao';
     final isExecutor = authService.userRole == 'executor';
@@ -36,7 +35,7 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
 
     return Scaffold(
       body: Container(
-        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+        color: DS.background,
         child: SafeArea(
           child: FutureBuilder<ChamadoManutencao>(
             future: manutencaoService.getChamadoById(chamadoId),
@@ -50,9 +49,15 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error, color: Colors.red, size: 48),
+                      const Icon(Icons.error, color: DS.error, size: 48),
                       const SizedBox(height: 16),
-                      Text('Erro: ${snapshot.error}'),
+                      Text(
+                        'Erro: ${snapshot.error}',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          color: DS.textPrimary,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -68,19 +73,20 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                       children: [
                         IconButton(
                           onPressed: () => Navigator.pop(context),
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.arrow_back,
-                            color: isDarkMode ? Colors.white : Colors.black87,
+                            color: DS.textPrimary,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             chamado.numeroFormatado,
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: isDarkMode ? Colors.white : Colors.black87,
+                              color: DS.textPrimary,
                             ),
                           ),
                         ),
@@ -88,7 +94,7 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                         if (isAdminManutencao)
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
+                              color: DS.error.withAlpha(26),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: IconButton(
@@ -96,7 +102,7 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                                   _confirmarExclusao(context, chamado.id),
                               icon: const Icon(
                                 Icons.delete_outline,
-                                color: Colors.red,
+                                color: DS.error,
                                 size: 28,
                               ),
                               tooltip: 'Deletar chamado',
@@ -113,7 +119,7 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildInfoCard(context, chamado, isDarkMode),
+                          _buildInfoCard(context, chamado),
 
                           // Botões de ação para ADMIN MANUTENÇÃO
                           if (isAdminManutencao)
@@ -121,7 +127,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                               context,
                               chamado,
                               manutencaoService,
-                              isDarkMode,
                             ),
 
                           // Botões de ação para EXECUTOR
@@ -161,29 +166,15 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
     return Color(int.parse('0xFF$hexColor'));
   }
 
-  Widget _buildInfoCard(
-    BuildContext context,
-    ChamadoManutencao chamado,
-    bool isDarkMode,
-  ) {
+  Widget _buildInfoCard(BuildContext context, ChamadoManutencao chamado) {
     final statusColor = _getStatusColor(chamado.status);
-    final textColor = isDarkMode ? Colors.white : Colors.black87;
-    final secondaryTextColor = isDarkMode
-        ? Colors.white70
-        : Colors.grey.shade700;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: statusColor.withValues(alpha: 0.5), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: statusColor.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: DS.card,
+        borderRadius: BorderRadius.circular(DS.cardRadius),
+        border: Border.all(color: statusColor.withAlpha(128), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,11 +182,19 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           // Data de criação
           Row(
             children: [
-              const Icon(Icons.calendar_today, size: 16),
+              const Icon(
+                Icons.calendar_today,
+                size: 16,
+                color: DS.textSecondary,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Criado em ${DateFormat('dd/MM/yyyy \'às\' HH:mm').format(chamado.dataAbertura)}',
-                style: TextStyle(fontSize: 13, color: secondaryTextColor),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  color: DS.textSecondary,
+                ),
               ),
             ],
           ),
@@ -205,11 +204,15 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           if (chamado.dataFinalizacao != null)
             Row(
               children: [
-                const Icon(Icons.update, size: 16),
+                const Icon(Icons.update, size: 16, color: DS.textSecondary),
                 const SizedBox(width: 8),
                 Text(
                   'Finalizado em ${DateFormat('dd/MM/yyyy \'às\' HH:mm').format(chamado.dataFinalizacao!)}',
-                  style: TextStyle(fontSize: 13, color: secondaryTextColor),
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    color: DS.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -246,10 +249,11 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           // Título
           Text(
             chamado.titulo,
-            style: TextStyle(
+            style: const TextStyle(
+              fontFamily: 'Inter',
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: textColor,
+              color: DS.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -260,25 +264,24 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
             Icons.person,
             'Solicitante',
             chamado.criadorNome,
-            isDarkMode,
           ),
           _buildInfoRow(
             context,
             Icons.description,
             'Descrição',
             chamado.descricao,
-            isDarkMode,
           ),
 
           // Validação
           if (chamado.precisaValidacao) ...[
             const Divider(height: 32),
-            Text(
+            const Text(
               '🔍 VALIDAÇÃO DO SUPERVISOR',
               style: TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: textColor,
+                color: DS.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -287,7 +290,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               chamado.validado ? Icons.check_circle : Icons.pending,
               'Status',
               chamado.validado ? '✅ Validado' : '⏳ Aguardando validação',
-              isDarkMode,
             ),
             if (chamado.adminValidadorNome != null)
               _buildInfoRow(
@@ -295,7 +297,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 Icons.person,
                 'Validado por',
                 chamado.adminValidadorNome!,
-                isDarkMode,
               ),
             if (chamado.dataValidacao != null)
               _buildInfoRow(
@@ -305,19 +306,18 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 DateFormat(
                   'dd/MM/yyyy \'às\' HH:mm',
                 ).format(chamado.dataValidacao!),
-                isDarkMode,
               ),
           ],
 
           // Orçamento
           if (chamado.orcamento != null) ...[
             const Divider(height: 32),
-            Text(
+            const Text(
               '💰 ORÇAMENTO',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: textColor,
+                color: DS.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -327,7 +327,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 Icons.attach_money,
                 'Valor Estimado',
                 'R\$ ${chamado.orcamento!.valorEstimado!.toStringAsFixed(2)}',
-                isDarkMode,
               ),
             if (chamado.orcamento!.arquivoUrl != null)
               _buildLinkButton(
@@ -337,9 +336,12 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               ),
             if (chamado.orcamento!.itens.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(
+              const Text(
                 '📦 Materiais:',
-                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               ...chamado.orcamento!.itens.map(
@@ -354,7 +356,10 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(item, style: TextStyle(color: textColor)),
+                        child: Text(
+                          item,
+                          style: const TextStyle(color: DS.textPrimary),
+                        ),
                       ),
                     ],
                   ),
@@ -366,12 +371,12 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           // Fotos do Local
           if (chamado.fotosUrls.isNotEmpty) ...[
             const Divider(height: 32),
-            Text(
+            const Text(
               '📸 FOTOS DO LOCAL',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: textColor,
+                color: DS.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -397,7 +402,7 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
+                                color: Colors.black.withAlpha(51),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -444,9 +449,10 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               '${chamado.fotosUrls.length} foto(s) • Toque para ampliar',
-              style: TextStyle(
+              style: const TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 12,
-                color: textColor.withValues(alpha: 0.7),
+                color: DS.textSecondary,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -473,7 +479,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               Icons.person,
               'Gerente',
               chamado.aprovacaoGerente!.gerenteNome,
-              isDarkMode,
             ),
             _buildInfoRow(
               context,
@@ -482,7 +487,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               DateFormat(
                 'dd/MM/yyyy \'às\' HH:mm',
               ).format(chamado.aprovacaoGerente!.dataAprovacao),
-              isDarkMode,
             ),
             if (!chamado.aprovacaoGerente!.aprovado &&
                 chamado.aprovacaoGerente!.motivoRejeicao != null)
@@ -491,7 +495,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 Icons.warning,
                 'Motivo da Rejeição',
                 chamado.aprovacaoGerente!.motivoRejeicao!,
-                isDarkMode,
                 isAlert: true,
               ),
           ],
@@ -499,12 +502,12 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           // Compra
           if (chamado.compra != null) ...[
             const Divider(height: 32),
-            Text(
+            const Text(
               '🛒 COMPRA DE MATERIAIS',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: textColor,
+                color: DS.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -517,7 +520,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                   : chamado.compra!.statusCompra == StatusCompra.emAndamento
                   ? '🛒 Em andamento'
                   : '✅ Concluído',
-              isDarkMode,
             ),
             if (chamado.compra!.dataChegadaMateriais != null)
               _buildInfoRow(
@@ -527,13 +529,15 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 DateFormat(
                   'dd/MM/yyyy \'às\' HH:mm',
                 ).format(chamado.compra!.dataChegadaMateriais!),
-                isDarkMode,
               ),
             if (chamado.compra!.notasFiscaisUrls.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(
+              const Text(
                 '📑 Notas Fiscais:',
-                style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               ...chamado.compra!.notasFiscaisUrls.asMap().entries.map(
@@ -549,12 +553,12 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           // Execução
           if (chamado.execucao != null) ...[
             const Divider(height: 32),
-            Text(
+            const Text(
               '🔧 EXECUÇÃO',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: textColor,
+                color: DS.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -563,7 +567,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               Icons.engineering,
               'Executor',
               chamado.execucao!.executorNome,
-              isDarkMode,
             ),
             _buildInfoRow(
               context,
@@ -572,7 +575,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               DateFormat(
                 'dd/MM/yyyy \'às\' HH:mm',
               ).format(chamado.execucao!.dataAtribuicao),
-              isDarkMode,
             ),
             if (chamado.execucao!.dataInicio != null)
               _buildInfoRow(
@@ -582,7 +584,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 DateFormat(
                   'dd/MM/yyyy \'às\' HH:mm',
                 ).format(chamado.execucao!.dataInicio!),
-                isDarkMode,
               ),
             if (chamado.execucao!.dataFim != null)
               _buildInfoRow(
@@ -592,7 +593,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 DateFormat(
                   'dd/MM/yyyy \'às\' HH:mm',
                 ).format(chamado.execucao!.dataFim!),
-                isDarkMode,
               ),
             if (chamado.execucao!.fotoComprovanteUrl != null)
               _buildLinkButton(
@@ -619,7 +619,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               Icons.person,
               'Executor',
               chamado.recusa!.executorNome,
-              isDarkMode,
             ),
             _buildInfoRow(
               context,
@@ -628,14 +627,12 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               DateFormat(
                 'dd/MM/yyyy \'às\' HH:mm',
               ).format(chamado.recusa!.dataRecusa),
-              isDarkMode,
             ),
             _buildInfoRow(
               context,
               Icons.warning,
               'Motivo',
               chamado.recusa!.motivo,
-              isDarkMode,
               isAlert: true,
             ),
           ],
@@ -648,19 +645,15 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String label,
-    String valor,
-    bool isDarkMode, {
+    String valor, {
     bool isAlert = false,
   }) {
-    final textColor = isDarkMode ? Colors.white : Colors.black87;
-    final labelColor = isDarkMode ? Colors.white60 : Colors.grey.shade600;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: isAlert ? Colors.red : labelColor),
+          Icon(icon, size: 20, color: isAlert ? DS.error : DS.textSecondary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -668,9 +661,10 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
                     fontSize: 12,
-                    color: labelColor,
+                    color: DS.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -678,8 +672,9 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
                 Text(
                   valor,
                   style: TextStyle(
+                    fontFamily: 'Inter',
                     fontSize: 15,
-                    color: isAlert ? Colors.red : textColor,
+                    color: isAlert ? DS.error : DS.textPrimary,
                     fontWeight: isAlert ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
@@ -857,7 +852,6 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
     BuildContext context,
     ChamadoManutencao chamado,
     ManutencaoService manutencaoService,
-    bool isDarkMode,
   ) {
     final status = chamado.status;
 
@@ -897,9 +891,9 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: DS.warning.withAlpha(26),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              border: Border.all(color: DS.warning.withAlpha(77)),
             ),
             child: Row(
               children: [
@@ -1116,9 +1110,9 @@ class ManutencaoDetalhesChamadoScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
+              color: DS.action.withAlpha(26),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+              border: Border.all(color: DS.action.withAlpha(77)),
             ),
             child: Row(
               children: [

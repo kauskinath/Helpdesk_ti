@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import '../models/chamado_manutencao_model.dart';
 import '../models/manutencao_enums.dart';
 
 /// Card padronizado para chamados de Manutenção
 ///
-/// Segue o mesmo visual do TicketCard do TI:
-/// - Tema adaptável (claro/escuro)
-/// - Bordas coloridas baseadas no status
-/// - Layout consistente
-/// - Gradientes sutis
+/// Novo Design System:
+/// - Fundo #1A1C1E, borda #2C2F33, radius 12px
+/// - Barra de status 3px à esquerda
+/// - Layout: ID + Status (linha 1), Título (linha 2), Usuário (linha 3)
 class ManutencaoCard extends StatelessWidget {
   final ChamadoManutencao chamado;
   final VoidCallback onTap;
@@ -47,246 +45,178 @@ class ManutencaoCard extends StatelessWidget {
     return chamado.status.label;
   }
 
-  IconData _getStatusIcon() {
-    switch (chamado.status) {
-      case StatusChamadoManutencao.aberto:
-        return Icons.new_releases;
-      case StatusChamadoManutencao.emValidacaoAdmin:
-        return Icons.fact_check;
-      case StatusChamadoManutencao.aguardandoAprovacaoGerente:
-        return Icons.pending_actions;
-      case StatusChamadoManutencao.orcamentoAprovado:
-      case StatusChamadoManutencao.liberadoParaExecucao:
-        return Icons.check_circle;
-      case StatusChamadoManutencao.orcamentoRejeitado:
-      case StatusChamadoManutencao.recusadoExecutor:
-      case StatusChamadoManutencao.cancelado:
-        return Icons.cancel;
-      case StatusChamadoManutencao.emCompra:
-        return Icons.shopping_cart;
-      case StatusChamadoManutencao.aguardandoMateriais:
-        return Icons.inventory_2;
-      case StatusChamadoManutencao.atribuidoExecutor:
-        return Icons.person_add;
-      case StatusChamadoManutencao.emExecucao:
-        return Icons.construction;
-      case StatusChamadoManutencao.finalizado:
-        return Icons.done_all;
-    }
-  }
-
   String _formatarData(DateTime data) {
-    return DateFormat('dd/MM/yy HH:mm').format(data);
+    final agora = DateTime.now();
+    final diferenca = agora.difference(data);
+
+    if (diferenca.inDays == 0) {
+      if (diferenca.inHours == 0) {
+        return '${diferenca.inMinutes}min';
+      }
+      return '${diferenca.inHours}h';
+    } else if (diferenca.inDays == 1) {
+      return 'Ontem';
+    } else if (diferenca.inDays < 7) {
+      return '${diferenca.inDays}d';
+    } else {
+      return DateFormat('dd/MM').format(data);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-    final isDark = themeProvider.isDarkMode;
     final statusColor = _getStatusColor();
 
-    // Cores adaptáveis ao tema
-    final cardColor = isDark
-        ? const Color(0xFF1E1E1E).withValues(alpha: 0.7)
-        : Colors.white.withValues(alpha: 0.95);
-
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark
-        ? Colors.white.withValues(alpha: 0.7)
-        : Colors.black54;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      elevation: isDark ? 8 : 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: statusColor.withValues(alpha: 0.5), width: 3),
-      ),
-      color: cardColor,
-      shadowColor: statusColor.withValues(alpha: 0.3),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                statusColor.withValues(alpha: 0.05),
-                statusColor.withValues(alpha: 0.02),
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Stack(
+          children: [
+            // Card principal com barra de status
+            Row(
               children: [
-                // Cabeçalho com título e status
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Ícone de status
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: statusColor.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Icon(
-                        _getStatusIcon(),
-                        color: statusColor,
-                        size: 24,
-                      ),
+                // Barra de status (3px à esquerda)
+                Container(
+                  width: 3,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(DS.cardRadius),
+                      bottomLeft: Radius.circular(DS.cardRadius),
                     ),
-                    const SizedBox(width: 12),
-                    // Título
-                    Expanded(
+                  ),
+                ),
+                // Card principal
+                Expanded(
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 100),
+                    decoration: BoxDecoration(
+                      color: DS.card,
+                      border: Border.all(color: DS.border, width: 1),
+                      borderRadius: BorderRadius.circular(DS.cardRadius),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // ID do chamado
+                          // Linha 1: ID à esquerda (status exibido no badge)
                           Text(
                             chamado.numeroFormatado,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: statusColor,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: DS.textSecondary,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          // Título
+                          const SizedBox(height: 8),
+                          // Linha 2: Título
                           Text(
                             chamado.titulo,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: DS.textPrimary,
+                              height: 1.3,
+                            ),
                           ),
-                          const SizedBox(height: 4),
-                          // Badge de status
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: statusColor.withValues(alpha: 0.4),
-                                width: 1,
+                          const SizedBox(height: 8),
+                          // Linha 3: Usuário + Data + Orçamento
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: DS.textTertiary,
                               ),
-                            ),
-                            child: Text(
-                              _getStatusLabel(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: statusColor,
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  chamado.criadorNome,
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: DS.textTertiary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
+                              // Orçamento (se houver)
+                              if (chamado.orcamento?.valorEstimado != null) ...[
+                                const Icon(
+                                  Icons.attach_money,
+                                  size: 14,
+                                  color: DS.success,
+                                ),
+                                Text(
+                                  'R\$ ${chamado.orcamento!.valorEstimado!.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: DS.success,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              // Data
+                              const Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: DS.textSecondary,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                _formatarData(chamado.dataAbertura),
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  color: DS.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Descrição (preview)
-                if (chamado.descricao.isNotEmpty) ...[
-                  Text(
-                    chamado.descricao,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: subtitleColor,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 12),
-                ],
-                // Rodapé com info
-                Row(
-                  children: [
-                    // Usuário
-                    Icon(Icons.person_outline, size: 16, color: subtitleColor),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        chamado.criadorNome,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: subtitleColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Data
-                    Icon(Icons.access_time, size: 16, color: subtitleColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatarData(chamado.dataAbertura),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: subtitleColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
                 ),
-                // Orçamento (se houver)
-                if (chamado.orcamento?.valorEstimado != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.green.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.attach_money,
-                          size: 16,
-                          color: Colors.green.shade700,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'R\$ ${chamado.orcamento!.valorEstimado!.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
             ),
-          ),
+            // Badge de status (canto superior direito) com cor
+            Positioned(
+              top: 8,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withAlpha(38), // 15% opacidade
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _getStatusLabel(),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

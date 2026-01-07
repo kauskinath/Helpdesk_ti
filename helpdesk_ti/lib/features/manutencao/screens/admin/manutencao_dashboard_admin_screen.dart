@@ -9,7 +9,7 @@ import '../comum/manutencao_advanced_search_screen.dart';
 import 'manutencao_criar_chamado_admin_screen.dart';
 import 'manutencao_dashboard_stats_screen.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 /// Dashboard do Admin Manutenção - Visual Profissional
 class ManutencaoDashboardAdminScreen extends StatefulWidget {
@@ -31,10 +31,9 @@ class _ManutencaoDashboardAdminScreenState
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final userName = authService.userName ?? 'Admin';
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return Container(
-      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+      color: DS.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
@@ -52,66 +51,30 @@ class _ManutencaoDashboardAdminScreenState
                         children: [
                           Text(
                             'Olá, $userName!',
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                              shadows: [
-                                Shadow(
-                                  offset: const Offset(0, 1),
-                                  blurRadius: 3.0,
-                                  color: isDarkMode
-                                      ? Colors.black.withValues(alpha: 0.5)
-                                      : Colors.white.withValues(alpha: 0.8),
-                                ),
-                              ],
+                              color: DS.textPrimary,
                             ),
                           ),
-                          Text(
+                          const Text(
                             '👷 Manutenção',
                             style: TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 14,
-                              color: isDarkMode ? Colors.white : Colors.black87,
-                              shadows: [
-                                Shadow(
-                                  offset: const Offset(0, 1),
-                                  blurRadius: 3.0,
-                                  color: isDarkMode
-                                      ? Colors.black.withValues(alpha: 0.4)
-                                      : Colors.white.withValues(alpha: 0.7),
-                                ),
-                              ],
+                              color: DS.textSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Botão de alternar tema
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
-                        onPressed: () {
-                          context.read<ThemeProvider>().toggleTheme();
-                        },
-                        tooltip: isDarkMode ? 'Tema Claro' : 'Tema Escuro',
-                      ),
-                    ),
                     const SizedBox(width: 8),
                     // Menu popup (3 pontinhos)
                     PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
+                      icon: const Icon(Icons.more_vert, color: DS.textPrimary),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(DS.cardRadius),
                       ),
                       offset: const Offset(0, 50),
                       onSelected: (String value) async {
@@ -277,24 +240,29 @@ class _ManutencaoDashboardAdminScreenState
                         margin: const EdgeInsets.all(12.0),
                         padding: const EdgeInsets.all(12.0),
                         decoration: BoxDecoration(
-                          color: Colors.teal.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.teal.shade300),
+                          color: DS.info.withAlpha(26),
+                          borderRadius: BorderRadius.circular(DS.cardRadius),
+                          border: Border.all(color: DS.info.withAlpha(77)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.filter_alt, color: Colors.teal.shade700),
+                            const Icon(Icons.filter_alt, color: DS.info),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Filtrando por: ${_filtroStatus!.label}',
                                 style: const TextStyle(
+                                  fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
+                                  color: DS.textPrimary,
                                 ),
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.close),
+                              icon: const Icon(
+                                Icons.close,
+                                color: DS.textSecondary,
+                              ),
                               onPressed: () {
                                 setState(() => _filtroStatus = null);
                               },
@@ -317,21 +285,22 @@ class _ManutencaoDashboardAdminScreenState
                           }
 
                           if (snapshot.hasError) {
-                            return Center(
+                            return const Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.error_outline,
                                     size: 64,
-                                    color: Colors.red.shade300,
+                                    color: DS.error,
                                   ),
-                                  const SizedBox(height: 16),
+                                  SizedBox(height: 16),
                                   Text(
                                     'Erro ao carregar chamados',
                                     style: TextStyle(
+                                      fontFamily: 'Inter',
                                       fontSize: 18,
-                                      color: Colors.grey.shade700,
+                                      color: DS.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -360,21 +329,22 @@ class _ManutencaoDashboardAdminScreenState
                           }
 
                           if (chamados.isEmpty) {
-                            return Center(
+                            return const Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.construction,
-                                    color: Colors.grey.shade400,
+                                    color: DS.textSecondary,
                                     size: 64,
                                   ),
-                                  const SizedBox(height: 16),
+                                  SizedBox(height: 16),
                                   Text(
                                     'Nenhum chamado encontrado',
                                     style: TextStyle(
+                                      fontFamily: 'Inter',
                                       fontSize: 18,
-                                      color: Colors.grey.shade600,
+                                      color: DS.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -425,8 +395,11 @@ class _ManutencaoDashboardAdminScreenState
             );
           },
           icon: const Icon(Icons.add),
-          label: const Text('CRIAR CHAMADO'),
-          backgroundColor: Colors.teal,
+          label: const Text(
+            'CRIAR CHAMADO',
+            style: TextStyle(fontFamily: 'Inter'),
+          ),
+          backgroundColor: DS.action,
         ),
       ),
     );
@@ -471,11 +444,14 @@ class _ManutencaoDashboardAdminScreenState
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1E1E1E)
-            : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Perfil do Usuário'),
+        backgroundColor: DS.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DS.cardRadius),
+        ),
+        title: const Text(
+          'Perfil do Usuário',
+          style: TextStyle(fontFamily: 'Inter', color: DS.textPrimary),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -483,11 +459,7 @@ class _ManutencaoDashboardAdminScreenState
               width: 80,
               height: 80,
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF00BCD4), Color(0xFF009688)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: DS.action,
                 shape: BoxShape.circle,
               ),
               child: const Center(
@@ -497,19 +469,25 @@ class _ManutencaoDashboardAdminScreenState
             const SizedBox(height: 16),
             Text(
               userName,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: DS.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.teal.withValues(alpha: 0.15),
+                color: DS.action.withAlpha(38),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text(
                 '👷 ADMIN MANUTENÇÃO',
                 style: TextStyle(
-                  color: Color(0xFF009688),
+                  fontFamily: 'Inter',
+                  color: DS.action,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -520,7 +498,7 @@ class _ManutencaoDashboardAdminScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Fechar'),
+            child: const Text('Fechar', style: TextStyle(fontFamily: 'Inter')),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:intl/intl.dart';
 import '../../models/chamado_manutencao_model.dart';
 import '../../models/manutencao_enums.dart';
@@ -174,18 +175,18 @@ class _ManutencaoAdvancedSearchScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    // DS cores usadas diretamente
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Busca Avançada',
-          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+          style: TextStyle(color: DS.textPrimary),
         ),
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : Colors.black87,
+        iconTheme: const IconThemeData(
+          color: DS.textPrimary,
         ),
       ),
       body: Column(
@@ -417,3 +418,5 @@ class _ManutencaoAdvancedSearchScreenState
     );
   }
 }
+
+

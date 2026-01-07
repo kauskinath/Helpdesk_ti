@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../services/manutencao_service.dart';
@@ -210,17 +211,17 @@ class _ManutencaoExecutarScreenState extends State<ManutencaoExecutarScreen> {
   Widget build(BuildContext context) {
     final bool jaIniciado =
         widget.chamado.status == StatusChamadoManutencao.emExecucao;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // DS cores usadas diretamente
 
     return WallpaperScaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           '🔧 Executar Trabalho',
-          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+          style: TextStyle(color: DS.textPrimary),
         ),
-        backgroundColor: Colors.black.withValues(alpha: 0.3),
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : Colors.black87,
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(
+          color: DS.textPrimary,
         ),
       ),
       body: SingleChildScrollView(
@@ -474,3 +475,5 @@ class _ManutencaoExecutarScreenState extends State<ManutencaoExecutarScreen> {
     );
   }
 }
+
+

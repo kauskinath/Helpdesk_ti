@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 /// Widget que exibe mensagens no estilo chat (WhatsApp)
 /// Mensagens do admin à esquerda (bolha azul)
@@ -16,33 +17,29 @@ class ChatMensagensWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     if (comentarios.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(32),
-        child: Column(
+        child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.chat_bubble_outline,
-              size: 64,
-              color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
-            ),
-            const SizedBox(height: 16),
+            Icon(Icons.chat_bubble_outline, size: 64, color: DS.textTertiary),
+            SizedBox(height: 16),
             Text(
               'Nenhuma mensagem ainda',
               style: TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 16,
-                color: isDarkMode ? Colors.white54 : Colors.grey.shade600,
+                color: DS.textSecondary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Inicie a conversa enviando uma mensagem',
               style: TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 13,
-                color: isDarkMode ? Colors.white38 : Colors.grey.shade500,
+                color: DS.textTertiary,
               ),
             ),
           ],
@@ -82,21 +79,14 @@ class ChatMensagensWidget extends StatelessWidget {
         return Column(
           children: [
             // Separador de data
-            if (showDate) _buildDateSeparator(context, dataHora, isDarkMode),
+            if (showDate) _buildDateSeparator(context, dataHora),
 
             // Mensagem de sistema (centralizada)
             if (isSystemMessage)
-              _buildSystemMessage(context, comentario, dataHora, isDarkMode)
+              _buildSystemMessage(context, comentario, dataHora)
             else
               // Mensagem normal (chat bubble)
-              _buildChatBubble(
-                context,
-                comentario,
-                dataHora,
-                isAdmin,
-                isMine,
-                isDarkMode,
-              ),
+              _buildChatBubble(context, comentario, dataHora, isAdmin, isMine),
           ],
         );
       },
@@ -107,11 +97,7 @@ class ChatMensagensWidget extends StatelessWidget {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Widget _buildDateSeparator(
-    BuildContext context,
-    DateTime date,
-    bool isDarkMode,
-  ) {
+  Widget _buildDateSeparator(BuildContext context, DateTime date) {
     final now = DateTime.now();
     final yesterday = DateTime(now.year, now.month, now.day - 1);
     final dateOnly = DateTime(date.year, date.month, date.day);
@@ -129,55 +115,46 @@ class ChatMensagensWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          Expanded(
-            child: Divider(
-              color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
-            ),
-          ),
+          const Expanded(child: Divider(color: DS.border)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isDarkMode
-                    ? Colors.white.withAlpha(15)
-                    : Colors.grey.shade200,
+                color: DS.border,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 dateText,
-                style: TextStyle(
+                style: const TextStyle(
+                  fontFamily: 'Inter',
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isDarkMode ? Colors.white70 : Colors.grey.shade600,
+                  color: DS.textSecondary,
                 ),
               ),
             ),
           ),
-          Expanded(
-            child: Divider(
-              color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
-            ),
-          ),
+          const Expanded(child: Divider(color: DS.border)),
         ],
       ),
     );
   }
 
+  /// Mensagem de sistema - logs como mudança de status
   Widget _buildSystemMessage(
     BuildContext context,
     Map<String, dynamic> comentario,
     DateTime dataHora,
-    bool isDarkMode,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isDarkMode ? Colors.amber.withAlpha(25) : Colors.amber.shade50,
+          color: DS.warning.withAlpha(26),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.amber.withAlpha(50)),
+          border: Border.all(color: DS.warning.withAlpha(77)),
         ),
         child: Column(
           children: [
@@ -185,19 +162,16 @@ class ChatMensagensWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 14,
-                  color: Colors.amber.shade700,
-                ),
+                const Icon(Icons.info_outline, size: 14, color: DS.warning),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     comentario['mensagem'] ?? '',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
                       fontSize: 13,
-                      color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                      color: DS.textSecondary,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -207,9 +181,10 @@ class ChatMensagensWidget extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               DateFormat('HH:mm').format(dataHora),
-              style: TextStyle(
+              style: const TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 10,
-                color: isDarkMode ? Colors.white38 : Colors.grey.shade500,
+                color: DS.textTertiary,
               ),
             ),
           ],
@@ -224,27 +199,16 @@ class ChatMensagensWidget extends StatelessWidget {
     DateTime dataHora,
     bool isAdmin,
     bool isMine,
-    bool isDarkMode,
   ) {
-    // Cores das bolhas
+    // Cores das bolhas - Design System
     final Color bubbleColor;
-    final Color textColor;
-    final Color timeColor;
 
     if (isAdmin) {
-      // Admin: bolha azul
-      bubbleColor = isDarkMode
-          ? const Color(0xFF1565C0)
-          : const Color(0xFF2196F3);
-      textColor = Colors.white;
-      timeColor = Colors.white70;
+      // Admin: bolha azul DS.action
+      bubbleColor = DS.action;
     } else {
-      // Usuário: bolha verde
-      bubbleColor = isDarkMode
-          ? const Color(0xFF2E7D32)
-          : const Color(0xFF4CAF50);
-      textColor = Colors.white;
-      timeColor = Colors.white70;
+      // Usuário: bolha verde DS.success
+      bubbleColor = DS.success;
     }
 
     return Padding(
@@ -262,7 +226,7 @@ class ChatMensagensWidget extends StatelessWidget {
         children: [
           // Avatar do admin (à esquerda)
           if (isAdmin) ...[
-            _buildAvatar(isAdmin, comentario['autorNome'] ?? 'A', isDarkMode),
+            _buildAvatar(isAdmin, comentario['autorNome'] ?? 'A'),
             const SizedBox(width: 8),
           ],
 
@@ -281,13 +245,6 @@ class ChatMensagensWidget extends StatelessWidget {
                   bottomLeft: Radius.circular(isAdmin ? 4 : 18),
                   bottomRight: Radius.circular(isAdmin ? 18 : 4),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(25),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
               child: Column(
                 crossAxisAlignment: isAdmin
@@ -303,10 +260,11 @@ class ChatMensagensWidget extends StatelessWidget {
                         children: [
                           Text(
                             comentario['autorNome'] ?? 'Admin TI',
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: textColor.withAlpha(220),
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -316,12 +274,13 @@ class ChatMensagensWidget extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(50),
+                              color: Colors.white.withAlpha(51),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
                               'TI',
                               style: TextStyle(
+                                fontFamily: 'Inter',
                                 color: Colors.white,
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
@@ -335,9 +294,10 @@ class ChatMensagensWidget extends StatelessWidget {
                   // Mensagem
                   Text(
                     comentario['mensagem'] ?? '',
-                    style: TextStyle(
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
                       fontSize: 15,
-                      color: textColor,
+                      color: Colors.white,
                       height: 1.3,
                     ),
                   ),
@@ -353,12 +313,20 @@ class ChatMensagensWidget extends StatelessWidget {
                     children: [
                       Text(
                         DateFormat('HH:mm').format(dataHora),
-                        style: TextStyle(fontSize: 11, color: timeColor),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: Colors.white.withAlpha(179),
+                        ),
                       ),
                       // Ícone de "enviado" para mensagens do usuário
                       if (!isAdmin) ...[
                         const SizedBox(width: 4),
-                        Icon(Icons.done_all, size: 14, color: timeColor),
+                        Icon(
+                          Icons.done_all,
+                          size: 14,
+                          color: Colors.white.withAlpha(179),
+                        ),
                       ],
                     ],
                   ),
@@ -370,28 +338,27 @@ class ChatMensagensWidget extends StatelessWidget {
           // Avatar do usuário (à direita)
           if (!isAdmin) ...[
             const SizedBox(width: 8),
-            _buildAvatar(isAdmin, comentario['autorNome'] ?? 'U', isDarkMode),
+            _buildAvatar(isAdmin, comentario['autorNome'] ?? 'U'),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildAvatar(bool isAdmin, String nome, bool isDarkMode) {
+  Widget _buildAvatar(bool isAdmin, String nome) {
     final initial = nome.isNotEmpty ? nome[0].toUpperCase() : '?';
     final Color bgColor;
     final Color borderColor;
+    final Color textColor;
 
     if (isAdmin) {
-      bgColor = isDarkMode
-          ? const Color(0xFF1565C0).withAlpha(100)
-          : const Color(0xFF2196F3).withAlpha(50);
-      borderColor = const Color(0xFF2196F3);
+      bgColor = DS.action.withAlpha(38);
+      borderColor = DS.action;
+      textColor = DS.action;
     } else {
-      bgColor = isDarkMode
-          ? const Color(0xFF2E7D32).withAlpha(100)
-          : const Color(0xFF4CAF50).withAlpha(50);
-      borderColor = const Color(0xFF4CAF50);
+      bgColor = DS.success.withAlpha(38);
+      borderColor = DS.success;
+      textColor = DS.success;
     }
 
     return Container(
@@ -406,7 +373,8 @@ class ChatMensagensWidget extends StatelessWidget {
         child: Text(
           initial,
           style: TextStyle(
-            color: isAdmin ? const Color(0xFF2196F3) : const Color(0xFF4CAF50),
+            fontFamily: 'Inter',
+            color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),

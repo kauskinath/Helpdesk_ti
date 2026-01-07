@@ -213,12 +213,12 @@ class _ComentariosPaginadosWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ✅ CONTADOR: "Mostrando X de Y comentários"
+        // ✅ CONTADOR: "Mostrando X de Y mensagens"
         if (_totalComentarios > 0)
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: Text(
-              'Mostrando ${_comentarios.length} de $_totalComentarios comentários',
+              'Mostrando ${_comentarios.length} de $_totalComentarios mensagens',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
@@ -245,7 +245,7 @@ class _ComentariosPaginadosWidgetState
               child: OutlinedButton.icon(
                 onPressed: _carregarProximaPagina,
                 icon: const Icon(Icons.expand_more),
-                label: const Text('Carregar Mais Comentários'),
+                label: const Text('Carregar Mais Mensagens'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -256,12 +256,12 @@ class _ComentariosPaginadosWidgetState
             ),
         ],
 
-        // ✅ MENSAGEM: "Todos os comentários carregados"
+        // ✅ MENSAGEM: "Todas as mensagens carregadas"
         if (!_temMais && _comentarios.isNotEmpty)
           const Padding(
             padding: EdgeInsets.only(top: 16.0),
             child: Text(
-              '✓ Todos os comentários carregados',
+              '✓ Todas as mensagens carregadas',
               style: TextStyle(fontSize: 13),
               textAlign: TextAlign.center,
             ),

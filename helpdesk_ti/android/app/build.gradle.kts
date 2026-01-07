@@ -84,10 +84,54 @@ android {
             signingConfig = signingConfigs.getByName("release")
             println("[BUILD TYPE RELEASE] Aplicando signingConfig: ${signingConfig?.name}")
             
-            // TEMPORARIO: Ofuscacao desabilitada ate resolver dependencias Play Core
-            // TODO: Reativar apos adicionar dependencia com.google.android.play:core
+            // ========== PROTEÇÃO MÁXIMA CONTRA ENGENHARIA REVERSA ==========
+            
+            // Ofuscação e minificação ATIVADAS
+            isMinifyEnabled = true      // Ofusca nomes de classes/métodos
+            isShrinkResources = true    // Remove recursos não utilizados
+            
+            // ProGuard com otimização agressiva
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
+            // Desabilitar debug em release
+            isDebuggable = false
+            isJniDebuggable = false
+            
+            // Otimizações de código nativo
+            ndk {
+                debugSymbolLevel = "NONE"  // Remove símbolos de debug
+            }
+        }
+        
+        debug {
+            // Debug também protegido para testes
             isMinifyEnabled = false
             isShrinkResources = false
+            isDebuggable = true
+        }
+    }
+    
+    // Desabilitar backup do app (proteção de dados)
+    defaultConfig {
+        // ... configurações existentes ...
+    }
+    
+    // Configurações de empacotamento
+    packaging {
+        resources {
+            // Remover arquivos desnecessários que podem expor informações
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/*.kotlin_module",
+                "META-INF/versions/**"
+            )
         }
     }
 }

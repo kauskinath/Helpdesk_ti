@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -271,18 +272,16 @@ class _ManutencaoCriarChamadoScreenState
   @override
   Widget build(BuildContext context) {
     final userName = _authService.userName ?? 'Usuário';
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // DS cores usadas diretamente
 
     return WallpaperScaffold(
       appBar: AppBar(
         title: Text(
           '🔧 $userName - Criar Chamado',
-          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+          style: const TextStyle(color: DS.textPrimary),
         ),
-        backgroundColor: Colors.black.withValues(alpha: 0.3),
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : Colors.black87,
-        ),
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: DS.textPrimary),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -296,9 +295,7 @@ class _ManutencaoCriarChamadoScreenState
                     // Título
                     TextFormField(
                       controller: _tituloController,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
+                      style: const TextStyle(color: DS.textPrimary),
                       decoration: const InputDecoration(
                         labelText: '📝 Título *',
                         hintText: 'Ex: Reparo no portão principal',
@@ -322,9 +319,7 @@ class _ManutencaoCriarChamadoScreenState
                     // Descrição
                     TextFormField(
                       controller: _descricaoController,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
+                      style: const TextStyle(color: DS.textPrimary),
                       decoration: const InputDecoration(
                         labelText: '📄 Descrição *',
                         hintText:
@@ -350,21 +345,41 @@ class _ManutencaoCriarChamadoScreenState
                     // Seção de Fotos
                     _buildSecaoFotos(),
                     const SizedBox(height: 20),
-                    const SizedBox(height: 20),
 
                     // Switch para orçamento
-                    Card(
-                      child: SwitchListTile(
-                        title: const Text('💰 Requer orçamento/materiais?'),
-                        subtitle: const Text(
-                          'Se SIM: Precisa aprovação do gerente\n'
-                          'Se NÃO: Pode atribuir executor direto',
-                        ),
-                        value: _temOrcamento,
-                        onChanged: (value) {
-                          setState(() => _temOrcamento = value);
-                        },
-                        secondary: const Icon(Icons.attach_money),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: DS.card,
+                        borderRadius: BorderRadius.circular(DS.cardRadius),
+                        border: Border.all(color: DS.border, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.attach_money,
+                            color: DS.textTertiary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Text(
+                              '💰 Requer orçamento/materiais?',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 15,
+                                color: DS.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Switch(
+                            value: _temOrcamento,
+                            onChanged: (value) {
+                              setState(() => _temOrcamento = value);
+                            },
+                            activeThumbColor: DS.action,
+                          ),
+                        ],
                       ),
                     ),
                     // Seção de Orçamento
@@ -379,21 +394,38 @@ class _ManutencaoCriarChamadoScreenState
                       const SizedBox(height: 16),
 
                       // Arquivo
-                      Card(
-                        color: Colors.teal.shade50,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: DS.card,
+                          borderRadius: BorderRadius.circular(DS.cardRadius),
+                          border: Border.all(color: DS.border, width: 1),
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Column(
                             children: [
                               ListTile(
-                                leading: Icon(
+                                leading: const Icon(
                                   Icons.upload_file,
-                                  color: Colors.teal.shade700,
+                                  color: DS.action,
                                 ),
-                                title: const Text('Anexar Orçamento (PDF/DOC)'),
+                                title: const Text(
+                                  'Anexar Orçamento (PDF/DOC)',
+                                  style: TextStyle(color: DS.textPrimary),
+                                ),
                                 subtitle: _nomeArquivo != null
-                                    ? Text('✅ $_nomeArquivo')
-                                    : const Text('Opcional'),
+                                    ? Text(
+                                        '✅ $_nomeArquivo',
+                                        style: const TextStyle(
+                                          color: DS.success,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Opcional',
+                                        style: TextStyle(
+                                          color: DS.textSecondary,
+                                        ),
+                                      ),
                                 trailing: ElevatedButton.icon(
                                   onPressed: _selecionarArquivo,
                                   icon: const Icon(Icons.attach_file),
@@ -403,7 +435,8 @@ class _ManutencaoCriarChamadoScreenState
                                         : 'Selecionar',
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal,
+                                    backgroundColor: DS.action,
+                                    foregroundColor: Colors.white,
                                   ),
                                 ),
                               ),
@@ -461,35 +494,6 @@ class _ManutencaoCriarChamadoScreenState
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Nota de rodapé
-                    Card(
-                      color: Colors.grey.shade100,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '⚠️ Importante:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '• Chamados passam por validação do supervisor\n'
-                              '• Se tiver orçamento, precisa aprovação do gerente\n'
-                              '• Você receberá notificações sobre o andamento',
-                              style: TextStyle(color: Colors.grey.shade700),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -498,8 +502,12 @@ class _ManutencaoCriarChamadoScreenState
   }
 
   Widget _buildSecaoFotos() {
-    return Card(
-      color: Colors.blue.shade50,
+    return Container(
+      decoration: BoxDecoration(
+        color: DS.card,
+        borderRadius: BorderRadius.circular(DS.cardRadius),
+        border: Border.all(color: DS.border, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -507,7 +515,7 @@ class _ManutencaoCriarChamadoScreenState
           children: [
             Row(
               children: [
-                Icon(Icons.photo_camera, color: Colors.blue.shade700),
+                const Icon(Icons.photo_camera, color: DS.action),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Column(
@@ -518,11 +526,12 @@ class _ManutencaoCriarChamadoScreenState
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: DS.textPrimary,
                         ),
                       ),
                       Text(
                         'Adicione fotos para ilustrar o problema',
-                        style: TextStyle(fontSize: 12),
+                        style: TextStyle(fontSize: 12, color: DS.textSecondary),
                       ),
                     ],
                   ),
@@ -535,7 +544,7 @@ class _ManutencaoCriarChamadoScreenState
                     style: TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: DS.action,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -546,14 +555,14 @@ class _ManutencaoCriarChamadoScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  const Divider(),
+                  const Divider(color: DS.border),
                   const SizedBox(height: 8),
                   Text(
                     '${_fotos.length} foto(s) anexada(s)',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.blue.shade700,
+                      color: DS.action,
                     ),
                   ),
                   const SizedBox(height: 12),

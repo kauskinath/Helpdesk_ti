@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import '../data/firestore_service.dart';
 import '../core/permissions/permission_provider.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import '../features/manutencao/screens/comum/manutencao_criar_chamado_screen.dart';
 import 'tabs/meus_chamados_tab.dart';
 import 'tabs/fila_tecnica_tab.dart';
 import 'tabs/aprovar_solicitacoes_tab.dart';
-import 'tabs/user_dashboard_tab.dart';
 import 'historico_chamados_screen.dart';
 import 'search/advanced_search_screen.dart';
 import 'dashboard/dashboard_screen.dart';
-import 'about_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,13 +41,15 @@ class _HomeScreenState extends State<HomeScreen> {
     // Determinar quais abas exibir baseado nas permissões
     final showAprovarSolicitacoesTab = permissions.canViewSolicitacoes;
     final showFilaTecnicaTab = permissions.canViewFilaTecnica;
-    final showMeusChamados =
-        !showFilaTecnicaTab; // TI não cria chamados, apenas atende
-
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+    // Admin e TI veem Fila Técnica, usuários comuns veem Meus Chamados
+    // Admin vê ambos para poder criar chamados também
+    final bool isAdmin = permissions.roleDisplayName.toLowerCase().contains(
+      'admin',
+    );
+    final showMeusChamados = !showFilaTecnicaTab || isAdmin;
 
     return Container(
-      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+      color: DS.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
@@ -67,90 +67,99 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             'Olá, ${userName ?? 'Usuário'}!',
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                              shadows: isDarkMode
-                                  ? null
-                                  : [
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
-                                      ),
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                              color: DS.textPrimary,
                             ),
                           ),
                           Text(
                             permissions.roleDisplayName,
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 14,
-                              color: isDarkMode ? Colors.white70 : Colors.black,
-                              shadows: isDarkMode
-                                  ? null
-                                  : [
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
-                                      ),
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                              color: DS.textSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Botão de alternar tema
+                    // Menu popup simples (3 pontinhos)
                     Container(
                       decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.3),
+                        color: DS.card,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: DS.border, width: 1),
                       ),
-                      child: IconButton(
-                        icon: Icon(
-                          isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                        onPressed: () {
-                          context.read<ThemeProvider>().toggleTheme();
-                        },
-                        tooltip: isDarkMode ? 'Tema Claro' : 'Tema Escuro',
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Menu (3 pontinhos)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
+                      child: PopupMenuButton<String>(
+                        icon: const Icon(
                           Icons.more_vert,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                        onPressed: () => _mostrarMenu(
-                          context,
-                          userName,
-                          authService,
-                          permissions,
+                          color: DS.textPrimary,
                         ),
                         tooltip: 'Menu',
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        offset: const Offset(0, 50),
+                        onSelected: (value) =>
+                            _onMenuSelected(context, value, authService),
+                        itemBuilder: (context) => [
+                          // Gerenciar Usuários (apenas admin)
+                          if (authService.isAdmin)
+                            const PopupMenuItem(
+                              value: 'usuarios',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.people,
+                                    size: 20,
+                                    color: DS.action,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text('Gerenciar Usuários'),
+                                ],
+                              ),
+                            ),
+                          // Busca Avançada
+                          const PopupMenuItem(
+                            value: 'busca',
+                            child: Row(
+                              children: [
+                                Icon(Icons.search, size: 20, color: DS.info),
+                                SizedBox(width: 12),
+                                Text('Busca Avançada'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(),
+                          // Meu Perfil
+                          const PopupMenuItem(
+                            value: 'perfil',
+                            child: Row(
+                              children: [
+                                Icon(Icons.person, size: 20, color: DS.action),
+                                SizedBox(width: 12),
+                                Text('Meu Perfil'),
+                              ],
+                            ),
+                          ),
+                          // Sair
+                          const PopupMenuItem(
+                            value: 'sair',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.exit_to_app,
+                                  size: 20,
+                                  color: DS.error,
+                                ),
+                                SizedBox(width: 12),
+                                Text('Sair'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -162,7 +171,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: IndexedStack(
                   index: _selectedTabIndex,
                   children: [
-                    if (showMeusChamados) const MeusChamadosTab(),
+                    // Admin TI: Fila Técnica primeiro
+                    if (showFilaTecnicaTab) const FilaTecnicaTab(),
+                    // Estatísticas ao lado da Fila Técnica
+                    if (showFilaTecnicaTab) const DashboardScreen(),
+                    if (showMeusChamados && !showFilaTecnicaTab)
+                      const MeusChamadosTab(),
                     if (showAprovarSolicitacoesTab)
                       const AprovarSolicitacoesTab(),
                     if (showAprovarSolicitacoesTab)
@@ -170,12 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         firestoreService: context.read<FirestoreService>(),
                         authService: context.read<AuthService>(),
                       ),
-                    if (showFilaTecnicaTab) const FilaTecnicaTab(),
-                    // Dashboard para todos os perfis
-                    if (showMeusChamados)
-                      const UserDashboardTab()
-                    else
-                      const DashboardScreen(),
                   ],
                 ),
               ),
@@ -184,14 +192,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ), // Fecha SafeArea (body do Scaffold)
         extendBody: true,
         bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
+          decoration: const BoxDecoration(
+            color: DS.card,
+            border: Border(top: BorderSide(color: DS.border, width: 1)),
           ),
           child: BottomNavigationBar(
             currentIndex: _selectedTabIndex,
@@ -203,12 +206,24 @@ class _HomeScreenState extends State<HomeScreen> {
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.transparent,
             elevation: 0,
-            selectedItemColor: Colors.white,
-            unselectedItemColor: Colors.white70,
+            selectedItemColor: DS.action,
+            unselectedItemColor: DS.textSecondary,
             selectedFontSize: 12,
             unselectedFontSize: 10,
             items: [
-              if (showMeusChamados)
+              // Admin TI: Fila Técnica primeiro
+              if (showFilaTecnicaTab)
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.engineering),
+                  label: 'Fila Técnica',
+                ),
+              // Estatísticas ao lado da Fila Técnica
+              if (showFilaTecnicaTab)
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.bar_chart),
+                  label: 'Estatísticas',
+                ),
+              if (showMeusChamados && !showFilaTecnicaTab)
                 const BottomNavigationBarItem(
                   icon: Icon(Icons.list_alt),
                   label: 'Chamados',
@@ -223,43 +238,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icon(Icons.history),
                   label: 'Histórico',
                 ),
-              if (showFilaTecnicaTab)
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.engineering),
-                  label: 'Fila Técnica',
-                ),
-              // Dashboard para todos os perfis
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard),
-                label: 'Dashboard',
-              ),
             ],
           ),
         ), // Fecha BottomNavigationBar Container
         floatingActionButton: (_selectedTabIndex == 0 && showMeusChamados)
             ? Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6F00), Color(0xFFFF8F00)],
-                  ),
+                  color: DS.action,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF6F00).withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
                 ),
                 child: FloatingActionButton.extended(
                   heroTag: 'home_new_ticket_fab',
                   onPressed: () => _mostrarSeletorTipoChamado(context),
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  icon: const Icon(Icons.add, size: 28),
+                  icon: const Icon(Icons.add, size: 28, color: Colors.white),
                   label: const Text(
                     'Novo Chamado',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               )
@@ -268,227 +269,66 @@ class _HomeScreenState extends State<HomeScreen> {
     ); // Fecha Container (wallpaper)
   }
 
-  void _mostrarMenu(
+  void _onMenuSelected(
     BuildContext context,
-    String? userName,
+    String value,
     AuthService authService,
-    dynamic permissions,
   ) {
-    final isDarkMode = context.read<ThemeProvider>().isDarkMode;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (bottomSheetContext) => Container(
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Indicador de arrastar
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 20),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              // GERENCIAMENTO (apenas admins)
-              if (authService.isAdmin) ...[
-                _buildMenuItem(
-                  context: bottomSheetContext,
-                  icon: Icons.people,
-                  iconColor: const Color(0xFF2196F3),
-                  title: 'Gerenciar Usuários',
-                  subtitle: 'Adicionar e editar usuários',
-                  onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    Navigator.of(context).pushNamed('/admin');
-                  },
-                ),
-                _buildMenuItem(
-                  context: bottomSheetContext,
-                  icon: Icons.description,
-                  iconColor: const Color(0xFFFF9800),
-                  title: 'Gerenciar Templates',
-                  subtitle: 'Criar e editar templates',
-                  onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    Navigator.of(context).pushNamed('/templates');
-                  },
-                ),
-                const Divider(height: 1, indent: 72),
-              ],
-
-              // RELATÓRIOS (admins/TI)
-              if (permissions.isAdministrative) ...[
-                _buildMenuItem(
-                  context: bottomSheetContext,
-                  icon: Icons.analytics,
-                  iconColor: const Color(0xFF9C27B0),
-                  title: 'Dashboard Completo',
-                  subtitle: 'Estatísticas e relatórios',
-                  onTap: () {
-                    Navigator.pop(bottomSheetContext);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const DashboardScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1, indent: 72),
-              ],
-
-              // FERRAMENTAS
-              _buildMenuItem(
-                context: bottomSheetContext,
-                icon: Icons.search,
-                iconColor: const Color(0xFF009688),
-                title: 'Busca Avançada',
-                subtitle: 'Pesquisar chamados',
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AdvancedSearchScreen(
-                        firestoreService: context.read<FirestoreService>(),
-                        authService: context.read<AuthService>(),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const Divider(height: 1, indent: 72),
-
-              // Meu Perfil
-              _buildMenuItem(
-                context: bottomSheetContext,
-                icon: Icons.person,
-                iconColor: const Color(0xFF9C27B0),
-                title: 'Meu Perfil',
-                subtitle: 'Ver informações do perfil',
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  // Chamar o dialog de perfil (código já existe na classe)
-                },
-              ),
-
-              // Sobre o Sistema
-              _buildMenuItem(
-                context: bottomSheetContext,
-                icon: Icons.info_outline,
-                iconColor: const Color(0xFF2196F3),
-                title: 'Sobre o Sistema',
-                subtitle: 'Informações do aplicativo',
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AboutScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const Divider(height: 1, indent: 72),
-
-              // Sair do Sistema
-              _buildMenuItem(
-                context: bottomSheetContext,
-                icon: Icons.exit_to_app,
-                iconColor: const Color(0xFFF44336),
-                title: 'Sair do Sistema',
-                subtitle: 'Encerrar sessão',
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  authService.logout();
-                },
-              ),
-
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuItem({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 24),
+    switch (value) {
+      case 'usuarios':
+        Navigator.of(context).pushNamed('/admin');
+        break;
+      case 'dashboard':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+        break;
+      case 'busca':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AdvancedSearchScreen(
+              firestoreService: context.read<FirestoreService>(),
+              authService: context.read<AuthService>(),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
+        break;
+      case 'filtrar':
+        // TODO: Implementar filtro de status
+        break;
+      case 'limpar_filtros':
+        // TODO: Implementar limpar filtros
+        break;
+      case 'estatisticas':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+        break;
+      case 'criar_chamado':
+        _mostrarSeletorTipoChamado(context);
+        break;
+      case 'perfil':
+        _mostrarPerfil(context, authService);
+        break;
+      case 'sair':
+        authService.logout();
+        break;
+    }
   }
 
   Future<void> _mostrarSeletorTipoChamado(BuildContext context) async {
-    final isDarkMode = context.read<ThemeProvider>().isDarkMode;
-
     showDialog(
       context: context,
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+            color: DS.card,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: DS.border, width: 1),
           ),
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -497,13 +337,22 @@ class _HomeScreenState extends State<HomeScreen> {
               // Título
               const Text(
                 '🎯 Qual tipo de chamado?',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Selecione o departamento responsável',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  color: DS.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -519,19 +368,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: DS.action,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF2196F3).withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: const Column(
                     children: [
@@ -540,6 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'TI - Suporte Técnico',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -548,7 +387,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: 4),
                       Text(
                         'Hardware, Software, Rede',
-                        style: TextStyle(fontSize: 13, color: Colors.white70),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                   ),
@@ -574,19 +417,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: DS.warning,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF9800).withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: const Column(
                     children: [
@@ -595,6 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Manutenção - Infraestrutura',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -603,7 +436,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: 4),
                       Text(
                         'Reparos, Instalações, Serviços',
-                        style: TextStyle(fontSize: 13, color: Colors.white70),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                   ),
@@ -615,11 +452,127 @@ class _HomeScreenState extends State<HomeScreen> {
               // Botão Cancelar
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: DS.textSecondary,
+                  ),
+                ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Exibe o perfil do usuário
+  void _mostrarPerfil(BuildContext context, AuthService authService) {
+    final userName = authService.userName ?? 'Usuário';
+    final permissions = context.permissions;
+    final roleDisplay = permissions.roleDisplayName;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: DS.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Perfil do Usuário',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            color: DS.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Avatar
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(Icons.person, size: 40, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Nome
+            Text(
+              userName,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: DS.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Cargo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: DS.action.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                roleDisplay,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  color: DS.action,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: DS.success,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: DS.success.withValues(alpha: 0.5),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Online',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: DS.success,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fechar', style: TextStyle(color: DS.action)),
+          ),
+        ],
       ),
     );
   }

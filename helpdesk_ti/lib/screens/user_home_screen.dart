@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import '../features/manutencao/screens/comum/manutencao_criar_chamado_screen.dart';
 import 'tabs/meus_chamados_tab.dart';
 import '../features/manutencao/screens/comum/manutencao_meus_chamados_screen.dart';
@@ -33,36 +33,31 @@ class _UserHomeScreenState extends State<UserHomeScreen>
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     final userName = authService.userName ?? 'Usuário';
 
     return Container(
-      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+      color: DS.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButton: Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
-            ),
+            color: DS.action,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
           ),
           child: FloatingActionButton.extended(
             heroTag: 'user_home_new_ticket_fab',
             onPressed: () => _mostrarSeletorTipoChamado(context),
             backgroundColor: Colors.transparent,
             elevation: 0,
-            icon: const Icon(Icons.add, size: 28),
+            icon: const Icon(Icons.add, size: 28, color: Colors.white),
             label: const Text(
               'Novo Chamado',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -81,86 +76,70 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                         children: [
                           Text(
                             'Olá, $userName!',
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                              shadows: isDarkMode
-                                  ? null
-                                  : [
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
-                                      ),
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                              color: DS.textPrimary,
                             ),
                           ),
-                          Text(
+                          const Text(
                             '👤 Usuário Comum',
                             style: TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 14,
-                              color: isDarkMode ? Colors.white70 : Colors.black,
-                              shadows: isDarkMode
-                                  ? null
-                                  : [
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
-                                      ),
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                              color: DS.textSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Botão de alternar tema
+                    // Menu popup simples (3 pontinhos)
                     Container(
                       decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.3),
+                        color: DS.card,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: DS.border, width: 1),
                       ),
-                      child: IconButton(
-                        icon: Icon(
-                          isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                        onPressed: () {
-                          context.read<ThemeProvider>().toggleTheme();
-                        },
-                        tooltip: isDarkMode ? 'Tema Claro' : 'Tema Escuro',
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Menu (3 pontinhos)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
+                      child: PopupMenuButton<String>(
+                        icon: const Icon(
                           Icons.more_vert,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                          color: DS.textPrimary,
                         ),
-                        onPressed: () =>
-                            _mostrarMenu(context, userName, authService),
                         tooltip: 'Menu',
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        offset: const Offset(0, 50),
+                        onSelected: (value) =>
+                            _onMenuSelected(context, value, authService),
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'perfil',
+                            child: Row(
+                              children: [
+                                Icon(Icons.person, size: 20, color: DS.action),
+                                SizedBox(width: 12),
+                                Text('Meu Perfil'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuDivider(),
+                          PopupMenuItem(
+                            value: 'sair',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.exit_to_app,
+                                  size: 20,
+                                  color: DS.error,
+                                ),
+                                SizedBox(width: 12),
+                                Text('Sair'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -288,150 +267,31 @@ class _UserHomeScreenState extends State<UserHomeScreen>
     );
   }
 
-  void _mostrarMenu(
+  void _onMenuSelected(
     BuildContext context,
-    String userName,
+    String value,
     AuthService authService,
   ) {
-    final isDarkMode = context.read<ThemeProvider>().isDarkMode;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (bottomSheetContext) => Container(
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Indicador de arrastar
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 20),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              // Meu Perfil
-              _buildMenuItem(
-                context: bottomSheetContext,
-                icon: Icons.person,
-                iconColor: const Color(0xFF9C27B0),
-                title: 'Meu Perfil',
-                subtitle: 'Ver informações do perfil',
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  _mostrarPerfil(context, authService);
-                },
-              ),
-
-              // Sobre o Sistema
-              _buildMenuItem(
-                context: bottomSheetContext,
-                icon: Icons.info_outline,
-                iconColor: const Color(0xFFFF9800),
-                title: 'Sobre o Sistema',
-                subtitle: 'Informações do aplicativo',
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  Navigator.pushNamed(context, '/about');
-                },
-              ),
-
-              const Divider(height: 1, indent: 72),
-
-              // Sair do Sistema
-              _buildMenuItem(
-                context: bottomSheetContext,
-                icon: Icons.exit_to_app,
-                iconColor: const Color(0xFFF44336),
-                title: 'Sair do Sistema',
-                subtitle: 'Encerrar sessão',
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  authService.logout();
-                },
-              ),
-
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuItem({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
-          ],
-        ),
-      ),
-    );
+    switch (value) {
+      case 'perfil':
+        _mostrarPerfil(context, authService);
+        break;
+      case 'sair':
+        authService.logout();
+        break;
+    }
   }
 
   Future<void> _mostrarSeletorTipoChamado(BuildContext context) async {
-    final isDarkMode = context.read<ThemeProvider>().isDarkMode;
-
     showDialog(
       context: context,
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+            color: DS.card,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: DS.border, width: 1),
           ),
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -440,13 +300,22 @@ class _UserHomeScreenState extends State<UserHomeScreen>
               // Título
               const Text(
                 '🎯 Qual tipo de chamado?',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Selecione o departamento responsável',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  color: DS.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -455,26 +324,14 @@ class _UserHomeScreenState extends State<UserHomeScreen>
               InkWell(
                 onTap: () {
                   Navigator.pop(dialogContext);
-                  // Ir direto para criação manual de chamado TI
                   Navigator.of(context).pushNamed('/new_ticket');
                 },
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: DS.action,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF2196F3).withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: const Column(
                     children: [
@@ -483,6 +340,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                       Text(
                         'TI - Suporte Técnico',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -491,7 +349,11 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                       SizedBox(height: 4),
                       Text(
                         'Hardware, Software, Rede',
-                        style: TextStyle(fontSize: 13, color: Colors.white70),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                   ),
@@ -504,7 +366,6 @@ class _UserHomeScreenState extends State<UserHomeScreen>
               InkWell(
                 onTap: () {
                   Navigator.pop(dialogContext);
-                  // Abrir tela de criar chamado de manutenção
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -517,19 +378,8 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: Colors.orange,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF9800).withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: const Column(
                     children: [
@@ -538,6 +388,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                       Text(
                         'Manutenção - Infraestrutura',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -546,7 +397,11 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                       SizedBox(height: 4),
                       Text(
                         'Reparos, Instalações, Serviços',
-                        style: TextStyle(fontSize: 13, color: Colors.white70),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                   ),
@@ -558,7 +413,10 @@ class _UserHomeScreenState extends State<UserHomeScreen>
               // Botão Cancelar
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(color: DS.textSecondary),
+                ),
               ),
             ],
           ),

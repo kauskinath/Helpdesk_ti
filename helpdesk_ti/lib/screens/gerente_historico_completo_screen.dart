@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import '../data/firestore_service.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
 import '../widgets/ticket_card_v2.dart';
@@ -56,16 +56,15 @@ class _GerenteHistoricoCompletoScreenState
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final userName = authService.userName ?? 'Gerente';
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return Container(
-      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+      color: DS.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Column(
             children: [
-              // Header com botão voltar, saudação e tema
+              // Header com botão voltar e saudação
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -73,15 +72,14 @@ class _GerenteHistoricoCompletoScreenState
                     // Botão voltar
                     Container(
                       decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.3),
+                        color: DS.card,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: DS.border, width: 1),
                       ),
                       child: IconButton(
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.arrow_back,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                          color: DS.textPrimary,
                         ),
                         onPressed: () => Navigator.pop(context),
                         tooltip: 'Voltar',
@@ -95,67 +93,22 @@ class _GerenteHistoricoCompletoScreenState
                         children: [
                           Text(
                             'Olá, $userName!',
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                              shadows: isDarkMode
-                                  ? null
-                                  : [
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
-                                      ),
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                              color: DS.textPrimary,
                             ),
                           ),
-                          Text(
+                          const Text(
                             '📋 Histórico - Chamados Fechados',
                             style: TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 14,
-                              color: isDarkMode ? Colors.white70 : Colors.black,
-                              shadows: isDarkMode
-                                  ? null
-                                  : [
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
-                                      ),
-                                      const Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                              color: DS.textSecondary,
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    // Botão de alternar tema
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.black.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                        ),
-                        onPressed: () {
-                          context.read<ThemeProvider>().toggleTheme();
-                        },
-                        tooltip: isDarkMode ? 'Tema Claro' : 'Tema Escuro',
                       ),
                     ),
                   ],
@@ -167,25 +120,12 @@ class _GerenteHistoricoCompletoScreenState
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
                   children: [
-                    Text(
+                    const Text(
                       'Período: ',
                       style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black,
+                        fontFamily: 'Inter',
+                        color: DS.textPrimary,
                         fontWeight: FontWeight.w600,
-                        shadows: isDarkMode
-                            ? null
-                            : [
-                                const Shadow(
-                                  color: Colors.white,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1),
-                                ),
-                                const Shadow(
-                                  color: Colors.white,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -217,32 +157,27 @@ class _GerenteHistoricoCompletoScreenState
                   stream: _getChamadosFechados(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          color: isDarkMode ? Colors.white : Colors.blue,
-                        ),
+                      return const Center(
+                        child: CircularProgressIndicator(color: DS.action),
                       );
                     }
 
                     if (snapshot.hasError) {
-                      return Center(
+                      return const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.error_outline,
                               size: 64,
-                              color: isDarkMode
-                                  ? Colors.white70
-                                  : Colors.grey[600],
+                              color: DS.textSecondary,
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Text(
                               'Erro ao carregar histórico',
                               style: TextStyle(
-                                color: isDarkMode
-                                    ? Colors.white.withValues(alpha: 0.9)
-                                    : Colors.black87,
+                                fontFamily: 'Inter',
+                                color: DS.textPrimary,
                                 fontSize: 16,
                               ),
                             ),
@@ -254,34 +189,30 @@ class _GerenteHistoricoCompletoScreenState
                     final chamados = snapshot.data ?? [];
 
                     if (chamados.isEmpty) {
-                      return Center(
+                      return const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.check_circle_outline,
                               size: 64,
-                              color: isDarkMode
-                                  ? Colors.white70
-                                  : Colors.grey[600],
+                              color: DS.textSecondary,
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Text(
                               'Nenhum chamado fechado',
                               style: TextStyle(
-                                color: isDarkMode
-                                    ? Colors.white.withValues(alpha: 0.9)
-                                    : Colors.black87,
+                                fontFamily: 'Inter',
+                                color: DS.textPrimary,
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8),
                             Text(
                               'no período selecionado',
                               style: TextStyle(
-                                color: isDarkMode
-                                    ? Colors.white.withValues(alpha: 0.7)
-                                    : Colors.grey[700],
+                                fontFamily: 'Inter',
+                                color: DS.textSecondary,
                                 fontSize: 14,
                               ),
                             ),
@@ -303,8 +234,8 @@ class _GerenteHistoricoCompletoScreenState
                             status: chamado.status,
                             prioridade: chamado.prioridade,
                             usuarioNome: chamado.usuarioNome,
+                            setorNome: chamado.setor,
                             lastUpdated: chamado.lastUpdated,
-                            numeroComentarios: chamado.numeroComentarios,
                             temAnexos: chamado.anexos.isNotEmpty,
                             onTap: () {
                               Navigator.push(
@@ -335,7 +266,6 @@ class _GerenteHistoricoCompletoScreenState
 
   Widget _buildFiltroChip(String valor, String label) {
     final isSelected = _filtroSelecionado == valor;
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
     return GestureDetector(
       onTap: () {
@@ -346,29 +276,18 @@ class _GerenteHistoricoCompletoScreenState
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.blue
-              : isDarkMode
-              ? Colors.black.withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.3),
+          color: isSelected ? DS.action : DS.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected
-                ? Colors.blue.shade300
-                : isDarkMode
-                ? Colors.white.withValues(alpha: 0.3)
-                : Colors.black.withValues(alpha: 0.3),
+            color: isSelected ? DS.action : DS.border,
             width: 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected
-                ? Colors.white
-                : isDarkMode
-                ? Colors.white
-                : Colors.black,
+            fontFamily: 'Inter',
+            color: isSelected ? Colors.white : DS.textPrimary,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 12,
           ),

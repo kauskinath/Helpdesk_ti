@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/shared/widgets/wallpaper_scaffold.dart';
 import '../../services/manutencao_service.dart';
 import '../../models/chamado_manutencao_model.dart';
@@ -301,19 +302,15 @@ class _ManutencaoCriarChamadoAdminScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return WallpaperScaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           '📋 Admin - Criar Chamado',
-          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+          style: TextStyle(fontFamily: 'Inter', color: DS.textPrimary),
         ),
-        backgroundColor: Colors.black.withValues(alpha: 0.3),
+        backgroundColor: DS.card,
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : Colors.black87,
-        ),
+        iconTheme: const IconThemeData(color: DS.textPrimary),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -327,8 +324,9 @@ class _ManutencaoCriarChamadoAdminScreenState
                     // Título
                     TextFormField(
                       controller: _tituloController,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black87,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: DS.textPrimary,
                       ),
                       decoration: const InputDecoration(
                         labelText: '📝 Título *',
@@ -353,8 +351,9 @@ class _ManutencaoCriarChamadoAdminScreenState
                     // Descrição
                     TextFormField(
                       controller: _descricaoController,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black87,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: DS.textPrimary,
                       ),
                       decoration: const InputDecoration(
                         labelText: '📄 Descrição *',
@@ -382,18 +381,39 @@ class _ManutencaoCriarChamadoAdminScreenState
                     const SizedBox(height: 20),
 
                     // Switch para orçamento
-                    Card(
-                      child: SwitchListTile(
-                        title: const Text('💰 Requer orçamento/materiais?'),
-                        subtitle: const Text(
-                          'Se SIM: Precisa aprovação do gerente\n'
-                          'Se NÃO: Pode atribuir executor direto',
-                        ),
-                        value: _temOrcamento,
-                        onChanged: (value) {
-                          setState(() => _temOrcamento = value);
-                        },
-                        secondary: const Icon(Icons.attach_money),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: DS.card,
+                        borderRadius: BorderRadius.circular(DS.cardRadius),
+                        border: Border.all(color: DS.border, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.attach_money,
+                            color: DS.textTertiary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Text(
+                              '💰 Requer orçamento/materiais?',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 15,
+                                color: DS.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Switch(
+                            value: _temOrcamento,
+                            onChanged: (value) {
+                              setState(() => _temOrcamento = value);
+                            },
+                            activeThumbColor: DS.action,
+                          ),
+                        ],
                       ),
                     ),
 
@@ -410,46 +430,37 @@ class _ManutencaoCriarChamadoAdminScreenState
 
                       // Arquivo
                       Card(
-                        color: Colors.teal.shade50,
+                        color: DS.card,
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Column(
                             children: [
                               ListTile(
-                                leading: Icon(
+                                leading: const Icon(
                                   Icons.upload_file,
-                                  color: Colors.teal.shade700,
+                                  color: DS.action,
                                 ),
-                                title: Text(
+                                title: const Text(
                                   'Anexar Orçamento (PDF/DOC)',
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.black87
-                                        : Colors.black,
+                                    fontFamily: 'Inter',
+                                    color: DS.textPrimary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 subtitle: _nomeArquivo != null
                                     ? Text(
                                         '✅ $_nomeArquivo',
-                                        style: TextStyle(
-                                          color:
-                                              Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.black54
-                                              : Colors.black54,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          color: DS.textSecondary,
                                         ),
                                       )
-                                    : Text(
+                                    : const Text(
                                         'Opcional',
                                         style: TextStyle(
-                                          color:
-                                              Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.black54
-                                              : Colors.black54,
+                                          fontFamily: 'Inter',
+                                          color: DS.textSecondary,
                                         ),
                                       ),
                                 trailing: ElevatedButton.icon(
@@ -459,9 +470,10 @@ class _ManutencaoCriarChamadoAdminScreenState
                                     _nomeArquivo != null
                                         ? 'Alterar'
                                         : 'Selecionar',
+                                    style: const TextStyle(fontFamily: 'Inter'),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal,
+                                    backgroundColor: DS.action,
                                   ),
                                 ),
                               ),
@@ -527,10 +539,8 @@ class _ManutencaoCriarChamadoAdminScreenState
   }
 
   Widget _buildSecaoFotos() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Card(
-      color: Colors.blue.shade50,
+      color: DS.card,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -538,25 +548,27 @@ class _ManutencaoCriarChamadoAdminScreenState
           children: [
             Row(
               children: [
-                Icon(Icons.photo_camera, color: Colors.blue.shade700),
+                const Icon(Icons.photo_camera, color: DS.info),
                 const SizedBox(width: 12),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         '📸 Fotos do Local',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.black87 : Colors.black,
+                          color: DS.textPrimary,
                         ),
                       ),
                       Text(
                         'Adicione fotos para ilustrar o problema',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 12,
-                          color: isDarkMode ? Colors.black54 : Colors.black54,
+                          color: DS.textSecondary,
                         ),
                       ),
                     ],
@@ -567,10 +579,10 @@ class _ManutencaoCriarChamadoAdminScreenState
                   icon: const Icon(Icons.add_a_photo, color: Colors.white),
                   label: const Text(
                     'Adicionar',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(fontFamily: 'Inter', color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: DS.action,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -581,14 +593,15 @@ class _ManutencaoCriarChamadoAdminScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  const Divider(),
+                  const Divider(color: DS.border),
                   const SizedBox(height: 8),
                   Text(
                     '${_fotos.length} foto(s) anexada(s)',
-                    style: TextStyle(
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.blue.shade700,
+                      color: DS.info,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -603,7 +616,9 @@ class _ManutencaoCriarChamadoAdminScreenState
                           child: Stack(
                             children: [
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(
+                                  DS.cardRadius,
+                                ),
                                 child: Image.file(
                                   _fotos[index],
                                   width: 120,
@@ -618,7 +633,7 @@ class _ManutencaoCriarChamadoAdminScreenState
                                   onTap: () => _removerFoto(index),
                                   child: Container(
                                     decoration: const BoxDecoration(
-                                      color: Colors.red,
+                                      color: DS.error,
                                       shape: BoxShape.circle,
                                     ),
                                     padding: const EdgeInsets.all(4),

@@ -204,8 +204,8 @@ class _HistoricoChamadosScreenState extends State<HistoricoChamadosScreen> {
                             status: chamado.status,
                             prioridade: chamado.prioridade,
                             usuarioNome: chamado.usuarioNome,
+                            setorNome: chamado.setor,
                             lastUpdated: chamado.lastUpdated,
-                            numeroComentarios: chamado.numeroComentarios,
                             temAnexos: chamado.temAnexos,
                             onTap: () {
                               Navigator.push(
