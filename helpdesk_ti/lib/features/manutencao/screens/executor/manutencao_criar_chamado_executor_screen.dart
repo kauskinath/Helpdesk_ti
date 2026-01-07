@@ -58,7 +58,7 @@ class _ManutencaoCriarChamadoExecutorScreenState
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('❌ Arquivo muito grande! Tamanho máximo: 10MB'),
-                backgroundColor: Colors.red,
+                backgroundColor: DS.error,
               ),
             );
           }
@@ -74,7 +74,7 @@ class _ManutencaoCriarChamadoExecutorScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Erro ao selecionar arquivo: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: DS.error,
           ),
         );
       }
@@ -89,7 +89,7 @@ class _ManutencaoCriarChamadoExecutorScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('❌ Liste pelo menos um material necessário'),
-          backgroundColor: Colors.red,
+          backgroundColor: DS.error,
         ),
       );
       return;
@@ -154,7 +154,7 @@ class _ManutencaoCriarChamadoExecutorScreenState
             content: Text(
               '✅ Solicitação criada! Após aprovação e chegada dos materiais, será automaticamente atribuída a você.',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: DS.success,
             duration: Duration(seconds: 4),
           ),
         );
@@ -163,7 +163,7 @@ class _ManutencaoCriarChamadoExecutorScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Erro: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('❌ Erro: $e'), backgroundColor: DS.error),
         );
       }
     } finally {
@@ -184,9 +184,7 @@ class _ManutencaoCriarChamadoExecutorScreenState
           style: TextStyle(color: DS.textPrimary),
         ),
         backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(
-          color: DS.textPrimary,
-        ),
+        iconTheme: const IconThemeData(color: DS.textPrimary),
       ),
       body: Form(
         key: _formKey,
@@ -196,22 +194,24 @@ class _ManutencaoCriarChamadoExecutorScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Card de informação
-              Card(
-                color: Colors.teal.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.teal.shade700),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Use este formulário para solicitar materiais necessários para um trabalho. Após a aprovação do gerente e a chegada dos materiais, o trabalho será automaticamente atribuído a você.',
-                          style: TextStyle(fontSize: 14),
-                        ),
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: DS.card,
+                  borderRadius: BorderRadius.circular(DS.cardRadius),
+                  border: Border.all(color: DS.border),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: DS.action),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Use este formulário para solicitar materiais necessários para um trabalho. Após a aprovação do gerente e a chegada dos materiais, o trabalho será automaticamente atribuído a você.',
+                        style: TextStyle(fontSize: 14, color: DS.textSecondary),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
@@ -219,19 +219,35 @@ class _ManutencaoCriarChamadoExecutorScreenState
               // Título
               const Text(
                 'Título *',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _tituloController,
                 maxLength: ManutencaoConstants.tituloMaxLength,
+                style: const TextStyle(color: DS.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Ex: Materiais para reparo do telhado',
+                  hintStyle: const TextStyle(color: DS.textTertiary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.action, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: DS.card,
+                  counterStyle: const TextStyle(color: DS.textTertiary),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -249,21 +265,37 @@ class _ManutencaoCriarChamadoExecutorScreenState
               // Descrição
               const Text(
                 'Descrição *',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descricaoController,
                 maxLines: 4,
                 maxLength: ManutencaoConstants.descricaoMaxLength,
+                style: const TextStyle(color: DS.textPrimary),
                 decoration: InputDecoration(
                   hintText:
                       'Descreva o trabalho que precisa ser realizado e por que esses materiais são necessários...',
+                  hintStyle: const TextStyle(color: DS.textTertiary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.action, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: DS.card,
+                  counterStyle: const TextStyle(color: DS.textTertiary),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -281,36 +313,47 @@ class _ManutencaoCriarChamadoExecutorScreenState
               // Seção de orçamento
               const Text(
                 '💰 Orçamento dos Materiais',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
+                ),
               ),
               const SizedBox(height: 16),
 
               // Arquivo do orçamento
               const Text(
                 'Documento do Orçamento (opcional)',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: DS.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               if (_arquivoOrcamento != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: DS.card,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green),
+                    border: Border.all(color: DS.success),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green),
+                      const Icon(Icons.check_circle, color: DS.success),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _arquivoOrcamento!.path.split('/').last,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: DS.textPrimary,
+                          ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.red),
+                        icon: const Icon(Icons.close, color: DS.error),
                         onPressed: () {
                           setState(() {
                             _arquivoOrcamento = null;
@@ -323,9 +366,11 @@ class _ManutencaoCriarChamadoExecutorScreenState
               ] else ...[
                 OutlinedButton.icon(
                   onPressed: _selecionarArquivo,
-                  icon: const Icon(Icons.attach_file),
+                  icon: const Icon(Icons.attach_file, color: DS.action),
                   label: const Text('Anexar Documento (PDF, DOC, DOCX)'),
                   style: OutlinedButton.styleFrom(
+                    foregroundColor: DS.action,
+                    side: const BorderSide(color: DS.border),
                     padding: const EdgeInsets.symmetric(
                       vertical: 12,
                       horizontal: 16,
@@ -338,7 +383,11 @@ class _ManutencaoCriarChamadoExecutorScreenState
               // Valor estimado
               const Text(
                 'Valor Estimado (opcional)',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: DS.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -346,14 +395,26 @@ class _ManutencaoCriarChamadoExecutorScreenState
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                style: const TextStyle(color: DS.textPrimary),
                 decoration: InputDecoration(
                   hintText: '0.00',
+                  hintStyle: const TextStyle(color: DS.textTertiary),
                   prefixText: 'R\$ ',
+                  prefixStyle: const TextStyle(color: DS.textPrimary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.action, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: DS.card,
                 ),
                 validator: (value) {
                   if (value != null && value.trim().isNotEmpty) {
@@ -370,26 +431,42 @@ class _ManutencaoCriarChamadoExecutorScreenState
               // Lista de materiais
               const Text(
                 'Lista de Materiais *',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: DS.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Digite um material por linha',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(fontSize: 12, color: DS.textTertiary),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _itensController,
                 maxLines: 6,
                 maxLength: 1000,
+                style: const TextStyle(color: DS.textPrimary),
                 decoration: InputDecoration(
                   hintText:
                       'Ex:\nTelhas de cerâmica (100 unidades)\nArgamassa (5 sacos)\nPregos (1 kg)',
+                  hintStyle: const TextStyle(color: DS.textTertiary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: DS.action, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: DS.card,
+                  counterStyle: const TextStyle(color: DS.textTertiary),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -421,7 +498,7 @@ class _ManutencaoCriarChamadoExecutorScreenState
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: DS.success,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -433,5 +510,3 @@ class _ManutencaoCriarChamadoExecutorScreenState
     );
   }
 }
-
-

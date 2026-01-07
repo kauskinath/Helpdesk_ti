@@ -81,10 +81,15 @@ service firebase.storage {
       // Leitura: Usuários autenticados
       allow read: if isAuthenticated();
       
-      // Escrita: Admin TI ou criador do chamado
+      // Escrita: Qualquer usuário autenticado pode fazer upload (para criar chamados)
       allow write: if isAuthenticated() && 
                       isValidFileSize() &&
                       (isValidImageType() || isValidDocumentType());
+      
+      // Criar: Qualquer usuário autenticado pode criar (upload inicial)
+      allow create: if isAuthenticated() && 
+                       isValidFileSize() &&
+                       (isValidImageType() || isValidDocumentType());
     }
     
     // ============================================================
@@ -93,7 +98,18 @@ service firebase.storage {
     
     match /tickets/{ticketId}/{allPaths=**} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && 
+      allow write, create: if isAuthenticated() && 
+                      isValidFileSize() &&
+                      (isValidImageType() || isValidDocumentType());
+    }
+    
+    // ============================================================
+    // REGRA GENÉRICA PARA CHAMADOS
+    // ============================================================
+    
+    match /chamados/{chamadoId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write, create: if isAuthenticated() && 
                       isValidFileSize() &&
                       (isValidImageType() || isValidDocumentType());
     }

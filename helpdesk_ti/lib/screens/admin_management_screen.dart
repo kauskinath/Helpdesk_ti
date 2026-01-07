@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:provider/provider.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
+import 'package:helpdesk_ti/shared/widgets/wallpaper_scaffold.dart';
 import 'admin/user_registration_screen.dart';
 
 class AdminManagementScreen extends StatefulWidget {
@@ -15,19 +15,16 @@ class AdminManagementScreen extends StatefulWidget {
 class _AdminManagementScreenState extends State<AdminManagementScreen> {
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
-
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return WallpaperScaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
           'Gerenciamento de Usuários',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: DS.textPrimary, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: DS.textPrimary),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add_alt_1),
@@ -43,10 +40,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
           ),
         ],
       ),
-      body: Container(
-        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
-        child: const SafeArea(child: _ListarUsuariosTab()),
-      ),
+      body: const SafeArea(child: _ListarUsuariosTab()),
     );
   }
 }
@@ -356,7 +350,7 @@ class _ListarUsuariosTab extends StatelessWidget {
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.95),
+                color: DS.card,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: roleColor.withValues(alpha: 0.4),
@@ -364,7 +358,7 @@ class _ListarUsuariosTab extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -420,24 +414,24 @@ class _ListarUsuariosTab extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: DS.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.email_outlined,
                                     size: 14,
-                                    color: Colors.grey[600],
+                                    color: DS.textSecondary,
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
                                       email,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 13,
-                                        color: Colors.grey[700],
+                                        color: DS.textSecondary,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -489,18 +483,18 @@ class _ListarUsuariosTab extends StatelessWidget {
                     if (departamento.isNotEmpty)
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.business,
                             size: 16,
-                            color: Colors.grey[600],
+                            color: DS.textSecondary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               departamento,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[800],
+                                color: DS.textTertiary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -513,18 +507,18 @@ class _ListarUsuariosTab extends StatelessWidget {
                     // ID do usuário (compacto)
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.fingerprint,
                           size: 16,
-                          color: Colors.grey[500],
+                          color: DS.textTertiary,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'ID: ${userId.substring(0, userId.length > 12 ? 12 : userId.length)}...',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[500],
+                              color: DS.textTertiary,
                               fontFamily: 'monospace',
                             ),
                           ),

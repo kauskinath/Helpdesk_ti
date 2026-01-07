@@ -5,6 +5,7 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -545,7 +546,7 @@ class _AboutScreenState extends State<AboutScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
-        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+        color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),

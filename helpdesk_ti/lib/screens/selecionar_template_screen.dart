@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado_template.dart';
 import '../data/firestore_service.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
@@ -27,7 +28,7 @@ class _SelecionarTemplateScreenState extends State<SelecionarTemplateScreen> {
 
     return Scaffold(
       body: Container(
-        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+        color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
         child: SafeArea(
           child: Column(
             children: [

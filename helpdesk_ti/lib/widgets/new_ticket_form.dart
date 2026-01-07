@@ -185,26 +185,22 @@ class _NewTicketFormState extends State<NewTicketForm> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(51) : null,
+          color: isSelected ? color.withAlpha(80) : DS.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Theme.of(context).dividerColor,
+            color: isSelected ? color : DS.border,
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? color : Theme.of(context).iconTheme.color,
-              size: 18,
-            ),
+            Icon(icon, color: isSelected ? color : DS.textSecondary, size: 18),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : null,
+                color: isSelected ? color : DS.textPrimary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -334,16 +330,24 @@ class _NewTicketFormState extends State<NewTicketForm> {
                     border: Border.all(color: DS.border),
                   ),
                   child: DropdownButtonFormField<String>(
-                    value: _selectedTipo,
+                    initialValue: _selectedTipo,
                     dropdownColor: DS.card,
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       color: DS.textPrimary,
                     ),
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.category, color: DS.textSecondary),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.category,
+                        color: DS.textSecondary,
+                      ),
+                      filled: true,
+                      fillColor: DS.card,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),

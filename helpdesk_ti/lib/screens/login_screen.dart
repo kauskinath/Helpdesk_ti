@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import 'package:helpdesk_ti/core/services/secure_storage_service.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/core/utils/rate_limiter.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -296,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+        color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(

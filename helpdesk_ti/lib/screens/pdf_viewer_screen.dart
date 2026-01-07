@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/theme/app_colors.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
+import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 
 /// Tela para visualizar arquivos PDF
 ///
@@ -23,11 +26,7 @@ class PdfViewerScreen extends StatefulWidget {
   final String pdfUrl;
   final String title;
 
-  const PdfViewerScreen({
-    super.key,
-    required this.pdfUrl,
-    required this.title,
-  });
+  const PdfViewerScreen({super.key, required this.pdfUrl, required this.title});
 
   @override
   State<PdfViewerScreen> createState() => _PdfViewerScreenState();
@@ -36,7 +35,7 @@ class PdfViewerScreen extends StatefulWidget {
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   final GlobalKey<SfPdfViewerState> _pdfViewerKey = GlobalKey();
   final PdfViewerController _pdfViewerController = PdfViewerController();
-  
+
   int _currentPage = 1;
   int _totalPages = 0;
   bool _showControls = true;
@@ -93,151 +92,161 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: const TextStyle(fontSize: 16),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          // Botão de página
-          if (_totalPages > 0)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '$_currentPage/$_totalPages',
-                  style: const TextStyle(fontSize: 14, color: Colors.white),
-                ),
-              ),
-            ),
-          // Botão de ir para página
-          IconButton(
-            icon: const Icon(Icons.format_list_numbered),
-            onPressed: _showPageNavigator,
-            tooltip: 'Ir para página',
-          ),
-          // Botão de alternar controles
-          IconButton(
-            icon: Icon(_showControls ? Icons.fullscreen : Icons.fullscreen_exit),
-            onPressed: () {
-              setState(() {
-                _showControls = !_showControls;
-              });
-            },
-            tooltip: _showControls ? 'Tela cheia' : 'Mostrar controles',
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Visualizador de PDF
-          SfPdfViewer.network(
-            widget.pdfUrl,
-            key: _pdfViewerKey,
-            controller: _pdfViewerController,
-            onDocumentLoaded: (PdfDocumentLoadedDetails details) {
-              setState(() {
-                _totalPages = details.document.pages.count;
-              });
-              print('✅ PDF carregado: $_totalPages páginas');
-            },
-            onPageChanged: (PdfPageChangedDetails details) {
-              setState(() {
-                _currentPage = details.newPageNumber;
-              });
-            },
-            enableTextSelection: true,
-            enableDoubleTapZooming: true,
-            canShowScrollHead: true,
-            canShowScrollStatus: true,
-          ),
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
 
-          // Controles flutuantes
-          if (_showControls)
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
+    return Container(
+      color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            widget.title,
+            style: TextStyle(
+              fontSize: 16,
+              color: isDarkMode ? DS.textPrimary : Colors.white,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          backgroundColor: isDarkMode ? DS.card : AppColors.primary,
+          foregroundColor: isDarkMode ? DS.textPrimary : Colors.white,
+          actions: [
+            // Botão de página
+            if (_totalPages > 0)
+              Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Zoom Out
-                      IconButton(
-                        icon: const Icon(Icons.zoom_out),
-                        onPressed: () {
-                          _pdfViewerController.zoomLevel = 
-                              _pdfViewerController.zoomLevel - 0.25;
-                        },
-                        tooltip: 'Diminuir zoom',
-                      ),
-                      // Resetar Zoom
-                      IconButton(
-                        icon: const Icon(Icons.fit_screen),
-                        onPressed: () {
-                          _pdfViewerController.zoomLevel = 1.0;
-                        },
-                        tooltip: 'Zoom original',
-                      ),
-                      // Zoom In
-                      IconButton(
-                        icon: const Icon(Icons.zoom_in),
-                        onPressed: () {
-                          _pdfViewerController.zoomLevel = 
-                              _pdfViewerController.zoomLevel + 0.25;
-                        },
-                        tooltip: 'Aumentar zoom',
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    '$_currentPage/$_totalPages',
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
                   ),
                 ),
               ),
+            // Botão de ir para página
+            IconButton(
+              icon: const Icon(Icons.format_list_numbered),
+              onPressed: _showPageNavigator,
+              tooltip: 'Ir para página',
             ),
-        ],
+            // Botão de alternar controles
+            IconButton(
+              icon: Icon(
+                _showControls ? Icons.fullscreen : Icons.fullscreen_exit,
+              ),
+              onPressed: () {
+                setState(() {
+                  _showControls = !_showControls;
+                });
+              },
+              tooltip: _showControls ? 'Tela cheia' : 'Mostrar controles',
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            // Visualizador de PDF
+            SfPdfViewer.network(
+              widget.pdfUrl,
+              key: _pdfViewerKey,
+              controller: _pdfViewerController,
+              onDocumentLoaded: (PdfDocumentLoadedDetails details) {
+                setState(() {
+                  _totalPages = details.document.pages.count;
+                });
+                print('✅ PDF carregado: $_totalPages páginas');
+              },
+              onPageChanged: (PdfPageChangedDetails details) {
+                setState(() {
+                  _currentPage = details.newPageNumber;
+                });
+              },
+              enableTextSelection: true,
+              enableDoubleTapZooming: true,
+              canShowScrollHead: true,
+              canShowScrollStatus: true,
+            ),
+
+            // Controles flutuantes
+            if (_showControls)
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Zoom Out
+                        IconButton(
+                          icon: const Icon(Icons.zoom_out),
+                          onPressed: () {
+                            _pdfViewerController.zoomLevel =
+                                _pdfViewerController.zoomLevel - 0.25;
+                          },
+                          tooltip: 'Diminuir zoom',
+                        ),
+                        // Resetar Zoom
+                        IconButton(
+                          icon: const Icon(Icons.fit_screen),
+                          onPressed: () {
+                            _pdfViewerController.zoomLevel = 1.0;
+                          },
+                          tooltip: 'Zoom original',
+                        ),
+                        // Zoom In
+                        IconButton(
+                          icon: const Icon(Icons.zoom_in),
+                          onPressed: () {
+                            _pdfViewerController.zoomLevel =
+                                _pdfViewerController.zoomLevel + 0.25;
+                          },
+                          tooltip: 'Aumentar zoom',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        floatingActionButton: _showControls && _totalPages > 1
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Página anterior
+                  FloatingActionButton(
+                    heroTag: 'prev_page',
+                    mini: true,
+                    onPressed: _currentPage > 1
+                        ? () => _pdfViewerController.previousPage()
+                        : null,
+                    backgroundColor: _currentPage > 1
+                        ? AppColors.primary
+                        : Colors.grey,
+                    child: const Icon(Icons.arrow_upward),
+                  ),
+                  const SizedBox(height: 8),
+                  // Próxima página
+                  FloatingActionButton(
+                    heroTag: 'next_page',
+                    mini: true,
+                    onPressed: _currentPage < _totalPages
+                        ? () => _pdfViewerController.nextPage()
+                        : null,
+                    backgroundColor: _currentPage < _totalPages
+                        ? AppColors.primary
+                        : Colors.grey,
+                    child: const Icon(Icons.arrow_downward),
+                  ),
+                ],
+              )
+            : null,
       ),
-      floatingActionButton: _showControls && _totalPages > 1
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Página anterior
-                FloatingActionButton(
-                  heroTag: 'prev_page',
-                  mini: true,
-                  onPressed: _currentPage > 1
-                      ? () => _pdfViewerController.previousPage()
-                      : null,
-                  backgroundColor: _currentPage > 1
-                      ? AppColors.primary
-                      : Colors.grey,
-                  child: const Icon(Icons.arrow_upward),
-                ),
-                const SizedBox(height: 8),
-                // Próxima página
-                FloatingActionButton(
-                  heroTag: 'next_page',
-                  mini: true,
-                  onPressed: _currentPage < _totalPages
-                      ? () => _pdfViewerController.nextPage()
-                      : null,
-                  backgroundColor: _currentPage < _totalPages
-                      ? AppColors.primary
-                      : Colors.grey,
-                  child: const Icon(Icons.arrow_downward),
-                ),
-              ],
-            )
-          : null,
     );
   }
 }
-

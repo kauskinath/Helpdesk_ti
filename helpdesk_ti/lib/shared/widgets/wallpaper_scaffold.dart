@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 
-/// Scaffold com fundo colorido para telas secundárias
+import 'package:helpdesk_ti/core/theme/design_system.dart';
+
+/// Scaffold com fundo escuro para todas as telas
 ///
 /// Use este widget em vez de Scaffold padrão para manter visual consistente
 class WallpaperScaffold extends StatelessWidget {
@@ -11,10 +11,6 @@ class WallpaperScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final Widget? bottomNavigationBar;
   final bool resizeToAvoidBottomInset;
-
-  // Cores de fundo
-  static const Color lightBackground = Color(0xFFF5F7FA); // Cinza claro suave
-  static const Color darkBackground = Color(0xFF1A1A2E); // Azul escuro profundo
 
   const WallpaperScaffold({
     super.key,
@@ -27,10 +23,9 @@ class WallpaperScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
-
+    // Sempre usa fundo escuro DS.background
     return Container(
-      color: isDarkMode ? darkBackground : lightBackground,
+      color: DS.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: appBar,

@@ -111,7 +111,10 @@ class NewTicketScreen extends StatelessWidget {
           if (anexosUrls.isNotEmpty) {
             await firestoreService.atualizarChamado(chamadoId, {
               'anexos': anexosUrls,
+              'temAnexos': true,
             });
+            // Aguardar propagação no Firestore
+            await Future.delayed(const Duration(milliseconds: 500));
           }
         }
 

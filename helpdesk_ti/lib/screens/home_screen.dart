@@ -470,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Exibe o perfil do usuário
   void _mostrarPerfil(BuildContext context, AuthService authService) {
     final userName = authService.userName ?? 'Usuário';
-    final permissions = context.permissions;
+    final permissions = PermissionProvider.read(context);
     final roleDisplay = permissions.roleDisplayName;
 
     showDialog(

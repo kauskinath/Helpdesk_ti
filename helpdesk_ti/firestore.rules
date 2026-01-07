@@ -46,10 +46,13 @@ service cloud.firestore {
     // ============================================================
     
     match /users/{userId} {
-      // Todos podem ler seus próprios dados
-      // Admins podem ler todos os usuários (inclusive via snapshots)
-      // Admin Manutenção pode listar usuários (precisa ver executores)
-      allow read, list: if isOwner(userId) || isAdmin() || isAdminManutencao();
+      // Leitura individual: próprio usuário, admins, admin manutenção
+      allow get: if isOwner(userId) || isAdmin() || isAdminManutencao() || isManager();
+      
+      // Listagem/Query: admins podem listar todos (para notificações, etc)
+      // Admin Manutenção pode listar (para ver executores)
+      // Usuários autenticados podem listar (para notificações por role)
+      allow list: if isSignedIn();
       
       // Usuário pode atualizar seus próprios dados
       // Admins podem criar/atualizar qualquer usuário
@@ -92,7 +95,8 @@ service cloud.firestore {
       allow update: if isAdmin() ||
                        isManager() ||
                        (resource.data.usuarioId == request.auth.uid && 
-                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'anexos', 'lastUpdated']) ||
+                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descricao', 'anexos', 'temAnexos', 'lastUpdated']) ||
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['anexos', 'temAnexos']) ||
                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadoEm', 'avaliacaoId']) ||
                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadoEm']) ||
                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliacaoId'])));

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
+import 'package:helpdesk_ti/shared/widgets/wallpaper_scaffold.dart';
 import '../../data/firestore_service.dart';
 import '../chamado/ticket_details_refactored.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
@@ -221,11 +223,16 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Busca Avançada'), elevation: 0),
+    return WallpaperScaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Busca Avançada',
+          style: TextStyle(color: DS.textPrimary, fontWeight: FontWeight.bold),
+        ),
+        iconTheme: const IconThemeData(color: DS.textPrimary),
+      ),
       body: Column(
         children: [
           // Área de filtros
@@ -238,37 +245,72 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                   // Campo de texto livre
                   TextField(
                     controller: _textoController,
+                    style: const TextStyle(color: DS.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Buscar por texto',
+                      labelStyle: const TextStyle(color: DS.textSecondary),
                       hintText: 'Título, descrição ou número do chamado',
-                      prefixIcon: const Icon(Icons.search),
+                      hintStyle: const TextStyle(color: DS.textTertiary),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: DS.textSecondary,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.action),
                       ),
                       filled: true,
-                      fillColor: theme.inputDecorationTheme.fillColor,
+                      fillColor: DS.card,
                     ),
                   ),
                   const SizedBox(height: 16),
 
                   // Filtro: Status
                   DropdownButtonFormField<String>(
-                    initialValue: _statusSelecionado,
+                    value: _statusSelecionado,
+                    dropdownColor: DS.card,
+                    style: const TextStyle(color: DS.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Status',
-                      prefixIcon: const Icon(Icons.flag),
+                      labelStyle: const TextStyle(color: DS.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.flag,
+                        color: DS.textSecondary,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
                       ),
                       filled: true,
-                      fillColor: theme.inputDecorationTheme.fillColor,
+                      fillColor: DS.card,
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Todos')),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text(
+                          'Todos',
+                          style: TextStyle(color: DS.textPrimary),
+                        ),
+                      ),
                       ..._statusOptions.map((status) {
                         return DropdownMenuItem(
                           value: status,
-                          child: Text(status),
+                          child: Text(
+                            status,
+                            style: const TextStyle(color: DS.textPrimary),
+                          ),
                         );
                       }),
                     ],
@@ -282,22 +324,42 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
 
                   // Filtro: Setor
                   DropdownButtonFormField<String>(
-                    initialValue: _setorSelecionado,
+                    value: _setorSelecionado,
+                    dropdownColor: DS.card,
+                    style: const TextStyle(color: DS.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Setor',
-                      prefixIcon: const Icon(Icons.business),
+                      labelStyle: const TextStyle(color: DS.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.business,
+                        color: DS.textSecondary,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
                       ),
                       filled: true,
-                      fillColor: theme.inputDecorationTheme.fillColor,
+                      fillColor: DS.card,
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Todos')),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text(
+                          'Todos',
+                          style: TextStyle(color: DS.textPrimary),
+                        ),
+                      ),
                       ..._setorOptions.map((setor) {
                         return DropdownMenuItem(
                           value: setor,
-                          child: Text(setor),
+                          child: Text(
+                            setor,
+                            style: const TextStyle(color: DS.textPrimary),
+                          ),
                         );
                       }),
                     ],
@@ -311,22 +373,42 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
 
                   // Filtro: Prioridade
                   DropdownButtonFormField<int>(
-                    initialValue: _prioridadeSelecionada,
+                    value: _prioridadeSelecionada,
+                    dropdownColor: DS.card,
+                    style: const TextStyle(color: DS.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Prioridade',
-                      prefixIcon: const Icon(Icons.priority_high),
+                      labelStyle: const TextStyle(color: DS.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.priority_high,
+                        color: DS.textSecondary,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DS.border),
                       ),
                       filled: true,
-                      fillColor: theme.inputDecorationTheme.fillColor,
+                      fillColor: DS.card,
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Todas')),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text(
+                          'Todas',
+                          style: TextStyle(color: DS.textPrimary),
+                        ),
+                      ),
                       ..._prioridadeOptions.entries.map((entry) {
                         return DropdownMenuItem(
                           value: entry.key,
-                          child: Text(entry.value),
+                          child: Text(
+                            entry.value,
+                            style: const TextStyle(color: DS.textPrimary),
+                          ),
                         );
                       }),
                     ],
@@ -339,59 +421,63 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                   const SizedBox(height: 16),
 
                   // Filtro: Período
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: DS.card,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: DS.border),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Período',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Período',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: DS.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _selecionarDataInicio,
+                                icon: const Icon(Icons.calendar_today),
+                                label: Text(
+                                  _dataInicio != null
+                                      ? DateFormat(
+                                          'dd/MM/yyyy',
+                                        ).format(_dataInicio!)
+                                      : 'Data Início',
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _selecionarDataInicio,
-                                  icon: const Icon(Icons.calendar_today),
-                                  label: Text(
-                                    _dataInicio != null
-                                        ? DateFormat(
-                                            'dd/MM/yyyy',
-                                          ).format(_dataInicio!)
-                                        : 'Data Início',
-                                  ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward,
+                              size: 20,
+                              color: DS.textSecondary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _selecionarDataFim,
+                                icon: const Icon(Icons.calendar_today),
+                                label: Text(
+                                  _dataFim != null
+                                      ? DateFormat(
+                                          'dd/MM/yyyy',
+                                        ).format(_dataFim!)
+                                      : 'Data Fim',
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.arrow_forward, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _selecionarDataFim,
-                                  icon: const Icon(Icons.calendar_today),
-                                  label: Text(
-                                    _dataFim != null
-                                        ? DateFormat(
-                                            'dd/MM/yyyy',
-                                          ).format(_dataFim!)
-                                        : 'Data Fim',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -436,17 +522,18 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
 
                   // Resultados
                   if (_buscaRealizada) ...[
-                    const Divider(),
+                    const Divider(color: DS.border),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(Icons.list_alt, color: theme.colorScheme.primary),
+                        const Icon(Icons.list_alt, color: DS.action),
                         const SizedBox(width: 8),
                         Text(
                           '${_resultados.length} resultado(s) encontrado(s)',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: DS.textPrimary,
                           ),
                         ),
                       ],
@@ -458,18 +545,18 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(32.0),
                           child: Column(
-                            children: [
+                            children: const [
                               Icon(
                                 Icons.search_off,
                                 size: 64,
-                                color: Colors.grey[400],
+                                color: DS.textTertiary,
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16),
                               Text(
                                 'Nenhum chamado encontrado',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey[600],
+                                  color: DS.textSecondary,
                                 ),
                               ),
                             ],
@@ -489,10 +576,13 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
   // ============ WIDGETS AUXILIARES ============
 
   Widget _buildChamadoCard(Chamado chamado) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: DS.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: DS.border),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
@@ -520,13 +610,13 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: DS.action,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       '#${chamado.numero.toString().padLeft(4, '0')}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -544,6 +634,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  color: DS.textPrimary,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -551,19 +642,25 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.business, size: 14, color: Colors.grey[600]),
+                  const Icon(Icons.business, size: 14, color: DS.textTertiary),
                   const SizedBox(width: 4),
                   Text(
                     chamado.setor,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: DS.textSecondary,
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  Icon(Icons.person, size: 14, color: Colors.grey[600]),
+                  const Icon(Icons.person, size: 14, color: DS.textTertiary),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       chamado.usuarioNome,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: DS.textSecondary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -573,11 +670,18 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: DS.textTertiary,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('dd/MM/yyyy HH:mm').format(chamado.dataCriacao),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: DS.textSecondary,
+                    ),
                   ),
                 ],
               ),

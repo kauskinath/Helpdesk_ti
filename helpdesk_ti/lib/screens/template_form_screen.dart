@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/theme/app_colors.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado_template.dart';
 import 'package:helpdesk_ti/features/ti/models/chamado.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
@@ -142,7 +143,7 @@ class _TemplateFormScreenState extends State<TemplateFormScreen> {
     final isDarkMode = themeProvider.isDarkMode;
 
     return Container(
-      color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+      color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(

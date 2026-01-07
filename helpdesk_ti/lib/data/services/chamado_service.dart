@@ -598,12 +598,11 @@ class ChamadoService {
         if (usuariosParaNotificar.isNotEmpty && numero != null) {
           _notificationService.sendNotificationToUsers(
             userIds: usuariosParaNotificar.toList(),
-            titulo:
-                '💬 Novo Comentário - #${numero.toString().padLeft(4, '0')}',
+            titulo: '💬 Nova Mensagem - #${numero.toString().padLeft(4, '0')}',
             corpo:
                 '$autorNome: ${mensagem.length > 50 ? '${mensagem.substring(0, 50)}...' : mensagem}',
             data: {
-              'tipo': 'novo_comentario',
+              'tipo': 'nova_mensagem',
               'chamadoId': chamadoId,
               'numero': numero.toString(),
             },

@@ -2,7 +2,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'navigation_service.dart';
 import 'package:helpdesk_ti/firebase_options.dart';
@@ -211,97 +210,13 @@ class NotificationService {
     final data = message.data;
 
     if (notification != null) {
-      // Mostrar overlay visual com animação
-      _showForegroundOverlay(
-        title: notification.title ?? 'Nova Notificação',
-        body: notification.body ?? '',
-        data: data,
-      );
-
-      // Também mostrar notificação local para persistência
+      // Mostrar apenas notificação na barra de status (sem overlay in-app)
       _showLocalNotification(
         title: notification.title ?? 'Nova Notificação',
         body: notification.body ?? '',
         data: Map<String, String>.from(data),
       );
     }
-  }
-
-  /// Mostrar overlay visual quando app está em foreground
-  void _showForegroundOverlay({
-    required String title,
-    required String body,
-    Map<String, dynamic>? data,
-  }) {
-    final context = NavigationService.currentContext;
-    if (context == null) return;
-
-    // Determinar cor e ícone baseado no tipo
-    Color backgroundColor = Colors.blue;
-    IconData icon = Icons.notifications;
-
-    if (data != null && data.containsKey('tipo')) {
-      switch (data['tipo']) {
-        case 'novo_chamado':
-          backgroundColor = Colors.orange;
-          icon = Icons.add_alert;
-          break;
-        case 'chamado_atualizado':
-          backgroundColor = Colors.blue;
-          icon = Icons.update;
-          break;
-        case 'solicitacao_pendente':
-          backgroundColor = Colors.purple;
-          icon = Icons.approval;
-          break;
-        case 'solicitacao_aprovada':
-          backgroundColor = Colors.green;
-          icon = Icons.check_circle;
-          break;
-      }
-    }
-
-    // Mostrar SnackBar com ação
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Text(
-                    body,
-                    style: const TextStyle(fontSize: 12),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: backgroundColor,
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'VER',
-          textColor: Colors.white,
-          onPressed: () =>
-              _handleMessageNavigation(RemoteMessage(data: data ?? {})),
-        ),
-      ),
-    );
   }
 
   /// Manipular navegação baseada na mensagem (IMPLEMENTADO)

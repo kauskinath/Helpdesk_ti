@@ -51,13 +51,13 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> _loadThemeFromPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Buscar tema salvo (padrão: claro)
       _isDarkMode = prefs.getBool(_themeKey) ?? false;
       _isLoaded = true;
-      
+
       print('🎨 Tema carregado: ${_isDarkMode ? "Escuro" : "Claro"}');
-      
+
       // Notificar mudança
       notifyListeners();
     } catch (e) {
@@ -73,16 +73,16 @@ class ThemeProvider extends ChangeNotifier {
     try {
       // Inverter estado
       _isDarkMode = !_isDarkMode;
-      
+
       print('🎨 Alternando tema para: ${_isDarkMode ? "Escuro" : "Claro"}');
-      
+
       // Salvar preferência
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_themeKey, _isDarkMode);
-      
+
       // Notificar mudança (atualiza UI)
       notifyListeners();
-      
+
       print('✅ Tema salvo com sucesso');
     } catch (e) {
       print('❌ Erro ao salvar tema: $e');
@@ -100,16 +100,16 @@ class ThemeProvider extends ChangeNotifier {
 
     try {
       _isDarkMode = isDark;
-      
+
       print('🎨 Definindo tema: ${_isDarkMode ? "Escuro" : "Claro"}');
-      
+
       // Salvar preferência
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_themeKey, _isDarkMode);
-      
+
       // Notificar mudança
       notifyListeners();
-      
+
       print('✅ Tema salvo com sucesso');
     } catch (e) {
       print('❌ Erro ao salvar tema: $e');

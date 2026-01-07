@@ -1036,7 +1036,7 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
             // Campo de entrada de mensagem (estilo WhatsApp)
             Container(
               decoration: BoxDecoration(
-                color: DS.background,
+                color: DS.card,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: DS.border, width: 1),
               ),
@@ -1057,6 +1057,8 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                           color: DS.textTertiary,
                         ),
                         border: InputBorder.none,
+                        filled: true,
+                        fillColor: DS.card,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,

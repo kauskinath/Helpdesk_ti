@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/theme/app_colors.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
+import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import 'package:helpdesk_ti/core/utils/seed_templates.dart';
 
 /// Tela para gerenciar templates (admin)
@@ -238,235 +241,253 @@ class _TemplateManagementScreenState extends State<TemplateManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gerenciar Templates'),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
+
+    return Container(
+      color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            'Gerenciar Templates',
+            style: TextStyle(color: isDarkMode ? DS.textPrimary : Colors.white),
+          ),
+          flexibleSpace: isDarkMode
+              ? null
+              : Container(
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                  ),
+                ),
+          backgroundColor: isDarkMode ? DS.card : null,
+          foregroundColor: isDarkMode ? DS.textPrimary : Colors.white,
         ),
-        foregroundColor: Colors.white,
-      ),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Processando...'),
-                ],
-              ),
-            )
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
+        body: _isLoading
+            ? const Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      '🌱 Seed de Templates',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Popule o banco com templates pré-configurados para o Help Desk',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Botão de atualização completa (LIMPAR + CRIAR)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _updateTemplates,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.warning,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        icon: const Icon(Icons.refresh, size: 28),
-                        label: const Text(
-                          '🔄 ATUALIZAR TEMPLATES (Limpar + Criar)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Processando...'),
+                  ],
+                ),
+              )
+            : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '🌱 Seed de Templates',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Popule o banco com templates pré-configurados para o Help Desk',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
 
-                    const SizedBox(height: 16),
+                      // Botão de atualização completa (LIMPAR + CRIAR)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : _updateTemplates,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.warning,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.refresh, size: 28),
+                          label: const Text(
+                            '🔄 ATUALIZAR TEMPLATES (Limpar + Criar)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
 
-                    // Card de informações
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary.withValues(alpha: 0.1),
-                            AppColors.primaryLight.withValues(alpha: 0.1),
+                      const SizedBox(height: 16),
+
+                      // Card de informações
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.1),
+                              AppColors.primaryLight.withValues(alpha: 0.1),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.info_outline,
+                                    color: AppColors.primary,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                const Text(
+                                  'Templates Incluídos',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTemplateCategory('🖥️ Hardware', [
+                              'Computador não liga',
+                              'Computador lento',
+                              'Teclado/Mouse com defeito',
+                            ]),
+                            _buildTemplateCategory('🌐 Rede e Internet', [
+                              'Sem acesso à internet',
+                              'Internet lenta',
+                              'Ponto de rede não funciona',
+                            ]),
+                            _buildTemplateCategory('🖨️ Impressoras', [
+                              'Impressora não imprime',
+                              'Atolamento de papel',
+                              'Toner acabando',
+                            ]),
+                            _buildTemplateCategory('💻 Software', [
+                              'Instalação de software',
+                              'Programa não abre/trava',
+                              'Atualização do Windows',
+                            ]),
+                            _buildTemplateCategory('📧 Email e Comunicação', [
+                              'Não consigo acessar email',
+                              'Email não envia/recebe',
+                            ]),
+                            _buildTemplateCategory('🔑 Acessos e Senhas', [
+                              'Esqueci minha senha',
+                              'Criar novo usuário',
+                              'Desativar usuário',
+                            ]),
+                            _buildTemplateCategory('📞 Telefonia', [
+                              'Ramal não funciona',
+                              'Solicitar novo ramal',
+                            ]),
+                            _buildTemplateCategory('🔧 Outros', [
+                              'Recuperação de arquivos',
+                              'Solicitar equipamento',
+                              'Manutenção preventiva',
+                            ]),
+                            const SizedBox(height: 8),
+                            const Divider(),
+                            const SizedBox(height: 8),
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  color: AppColors.success,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Total: 23 templates prontos para uso',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.success,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 32),
+
+                      // Botões de ação
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.2,
-                                  ),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _executeSeed,
+                              icon: const Icon(Icons.add_circle_outline),
+                              label: const Text('CRIAR TEMPLATES'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
-                                  Icons.info_outline,
-                                  color: AppColors.primary,
-                                  size: 28,
-                                ),
                               ),
-                              const SizedBox(width: 16),
-                              const Text(
-                                'Templates Incluídos',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          _buildTemplateCategory('🖥️ Hardware', [
-                            'Computador não liga',
-                            'Computador lento',
-                            'Teclado/Mouse com defeito',
-                          ]),
-                          _buildTemplateCategory('🌐 Rede e Internet', [
-                            'Sem acesso à internet',
-                            'Internet lenta',
-                            'Ponto de rede não funciona',
-                          ]),
-                          _buildTemplateCategory('🖨️ Impressoras', [
-                            'Impressora não imprime',
-                            'Atolamento de papel',
-                            'Toner acabando',
-                          ]),
-                          _buildTemplateCategory('💻 Software', [
-                            'Instalação de software',
-                            'Programa não abre/trava',
-                            'Atualização do Windows',
-                          ]),
-                          _buildTemplateCategory('📧 Email e Comunicação', [
-                            'Não consigo acessar email',
-                            'Email não envia/recebe',
-                          ]),
-                          _buildTemplateCategory('🔑 Acessos e Senhas', [
-                            'Esqueci minha senha',
-                            'Criar novo usuário',
-                            'Desativar usuário',
-                          ]),
-                          _buildTemplateCategory('📞 Telefonia', [
-                            'Ramal não funciona',
-                            'Solicitar novo ramal',
-                          ]),
-                          _buildTemplateCategory('🔧 Outros', [
-                            'Recuperação de arquivos',
-                            'Solicitar equipamento',
-                            'Manutenção preventiva',
-                          ]),
-                          const SizedBox(height: 8),
-                          const Divider(),
-                          const SizedBox(height: 8),
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline,
-                                color: AppColors.success,
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Total: 23 templates prontos para uso',
-                                style: TextStyle(
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _clearTemplates,
+                              icon: const Icon(Icons.delete_forever),
+                              label: const Text('LIMPAR TUDO'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.error,
+                                side: const BorderSide(
+                                  color: AppColors.error,
+                                  width: 2,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.success,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Botões de ação
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _executeSeed,
-                            icon: const Icon(Icons.add_circle_outline),
-                            label: const Text('CRIAR TEMPLATES'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _clearTemplates,
-                            icon: const Icon(Icons.delete_forever),
-                            label: const Text('LIMPAR TUDO'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.error,
-                              side: const BorderSide(
-                                color: AppColors.error,
-                                width: 2,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

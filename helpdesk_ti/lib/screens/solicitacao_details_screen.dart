@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/theme/app_colors.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
+import 'package:helpdesk_ti/core/theme/theme_provider.dart';
 import 'package:helpdesk_ti/features/ti/models/solicitacao.dart';
 import '../data/firestore_service.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
@@ -236,180 +239,190 @@ class _SolicitacaoDetailsScreenState extends State<SolicitacaoDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     final isManager = widget.authService.userRole == 'manager';
     final canEdit = isManager && widget.solicitacao.status == 'Pendente';
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('Detalhes da Solicitação'),
-        backgroundColor: AppColors.primary,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Card Principal
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.solicitacao.titulo,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildStatusChip(),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Informações do Item
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Informações do Item',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Divider(),
-                    _buildInfoRow(
-                      Icons.shopping_cart,
-                      'Item Solicitado',
-                      widget.solicitacao.itemSolicitado,
-                    ),
-                    _buildInfoRow(
-                      Icons.attach_money,
-                      'Custo Estimado',
-                      _formatCurrency(widget.solicitacao.custoEstimado),
-                    ),
-                    _buildInfoRow(
-                      Icons.business,
-                      'Setor',
-                      widget.solicitacao.setor,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Descrição',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(widget.solicitacao.descricao),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Justificativa',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(widget.solicitacao.justificativa),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Informações do Solicitante
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Solicitante',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Divider(),
-                    _buildInfoRow(
-                      Icons.person,
-                      'Nome',
-                      widget.solicitacao.usuarioNome,
-                    ),
-                    _buildInfoRow(
-                      Icons.calendar_today,
-                      'Data da Solicitação',
-                      _formatDate(widget.solicitacao.dataCriacao),
-                    ),
-                    if (widget.solicitacao.dataAtualizacao != null)
-                      _buildInfoRow(
-                        Icons.update,
-                        'Última Atualização',
-                        _formatDate(widget.solicitacao.dataAtualizacao!),
-                      ),
-                    if (widget.solicitacao.managerNome != null)
-                      _buildInfoRow(
-                        Icons.admin_panel_settings,
-                        'Analisado por',
-                        widget.solicitacao.managerNome!,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Motivo da Reprovação
-            if (widget.solicitacao.status == 'Reprovado' &&
-                widget.solicitacao.motivoRejeicao != null) ...[
-              const SizedBox(height: 16),
+    return Container(
+      color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(
+            'Detalhes da Solicitação',
+            style: TextStyle(color: isDarkMode ? DS.textPrimary : Colors.white),
+          ),
+          backgroundColor: isDarkMode ? DS.card : AppColors.primary,
+          iconTheme: IconThemeData(
+            color: isDarkMode ? DS.textPrimary : Colors.white,
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Card Principal
               Card(
-                color: Colors.red[50],
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.cancel, color: Colors.red[700]),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Motivo da Reprovação',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red[700],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        widget.solicitacao.titulo,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(widget.solicitacao.motivoRejeicao!),
+                      const SizedBox(height: 12),
+                      _buildStatusChip(),
                     ],
                   ),
                 ),
               ),
-            ],
+              const SizedBox(height: 16),
 
-            const SizedBox(height: 80),
-          ],
+              // Informações do Item
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Informações do Item',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Divider(),
+                      _buildInfoRow(
+                        Icons.shopping_cart,
+                        'Item Solicitado',
+                        widget.solicitacao.itemSolicitado,
+                      ),
+                      _buildInfoRow(
+                        Icons.attach_money,
+                        'Custo Estimado',
+                        _formatCurrency(widget.solicitacao.custoEstimado),
+                      ),
+                      _buildInfoRow(
+                        Icons.business,
+                        'Setor',
+                        widget.solicitacao.setor,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Descrição',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(widget.solicitacao.descricao),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Justificativa',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(widget.solicitacao.justificativa),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Informações do Solicitante
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Solicitante',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Divider(),
+                      _buildInfoRow(
+                        Icons.person,
+                        'Nome',
+                        widget.solicitacao.usuarioNome,
+                      ),
+                      _buildInfoRow(
+                        Icons.calendar_today,
+                        'Data da Solicitação',
+                        _formatDate(widget.solicitacao.dataCriacao),
+                      ),
+                      if (widget.solicitacao.dataAtualizacao != null)
+                        _buildInfoRow(
+                          Icons.update,
+                          'Última Atualização',
+                          _formatDate(widget.solicitacao.dataAtualizacao!),
+                        ),
+                      if (widget.solicitacao.managerNome != null)
+                        _buildInfoRow(
+                          Icons.admin_panel_settings,
+                          'Analisado por',
+                          widget.solicitacao.managerNome!,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Motivo da Reprovação
+              if (widget.solicitacao.status == 'Reprovado' &&
+                  widget.solicitacao.motivoRejeicao != null) ...[
+                const SizedBox(height: 16),
+                Card(
+                  color: Colors.red[50],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.cancel, color: Colors.red[700]),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Motivo da Reprovação',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(widget.solicitacao.motivoRejeicao!),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
+        bottomNavigationBar: canEdit ? _buildActionButtons() : null,
       ),
-      bottomNavigationBar: canEdit ? _buildActionButtons() : null,
     );
   }
 
@@ -569,5 +582,3 @@ class _SolicitacaoDetailsScreenState extends State<SolicitacaoDetailsScreen> {
     );
   }
 }
-
-

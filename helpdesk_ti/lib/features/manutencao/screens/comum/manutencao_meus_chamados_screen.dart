@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 import '../../services/manutencao_service.dart';
 import '../../models/chamado_manutencao_model.dart';
 import '../../models/manutencao_enums.dart';
@@ -41,7 +42,7 @@ class _ManutencaoMeusChamadosScreenState
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.orange.shade100,
+                color: DS.warning.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -51,8 +52,8 @@ class _ManutencaoMeusChamadosScreenState
                   const SizedBox(width: 8),
                   Text(
                     'Filtro: ${_filtroStatus!.label}',
-                    style: TextStyle(
-                      color: Colors.orange.shade900,
+                    style: const TextStyle(
+                      color: DS.warning,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

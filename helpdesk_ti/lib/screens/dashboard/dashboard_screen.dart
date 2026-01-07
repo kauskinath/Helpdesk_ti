@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/services/chamado_service.dart';
 import 'package:helpdesk_ti/core/theme/app_colors.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
+import 'package:helpdesk_ti/shared/widgets/wallpaper_scaffold.dart';
 
 /// Dashboard com estatísticas e gráficos do sistema
 ///
@@ -176,18 +178,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: isDarkMode
-          ? const Color(0xFF121212)
-          : AppColors.greyLight,
+    return WallpaperScaffold(
       appBar: AppBar(
-        title: const Text('📊 Dashboard'),
-        backgroundColor: isDarkMode
-            ? const Color(0xFF1E1E1E)
-            : AppColors.primary,
-        foregroundColor: Colors.white,
+        title: const Text(
+          '📊 Dashboard',
+          style: TextStyle(color: DS.textPrimary),
+        ),
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: DS.textPrimary),
         elevation: 0,
         actions: [
           // Botão de atualizar
@@ -257,7 +255,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: DS.textPrimary,
           ),
         ),
         const SizedBox(height: 12),
@@ -320,25 +318,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icone,
     required Color cor,
   }) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        color: DS.card,
         borderRadius: BorderRadius.circular(12),
-        border: isDarkMode
-            ? Border.all(color: Colors.white.withValues(alpha: 0.1))
-            : null,
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        border: Border.all(color: DS.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,21 +350,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           Text(
             valor,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : AppColors.textPrimary,
+              color: DS.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             titulo,
-            style: TextStyle(
-              fontSize: 14,
-              color: isDarkMode
-                  ? Colors.white.withValues(alpha: 0.7)
-                  : AppColors.textSecondary,
-            ),
+            style: const TextStyle(fontSize: 14, color: DS.textSecondary),
           ),
         ],
       ),
@@ -383,35 +370,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Constrói a seção do gráfico de pizza
   Widget _buildSecaoGraficoPizza() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        color: DS.card,
         borderRadius: BorderRadius.circular(12),
-        border: isDarkMode
-            ? Border.all(color: Colors.white.withValues(alpha: 0.1))
-            : null,
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        border: Border.all(color: DS.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Distribuição por Status',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : AppColors.textPrimary,
+              color: DS.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -433,7 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const Center(
         child: Text(
           'Nenhum chamado registrado',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: DS.textSecondary),
         ),
       );
     }
@@ -550,11 +531,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: DS.card,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: DS.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -568,7 +550,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: DS.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -591,7 +573,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const Center(
         child: Text(
           'Nenhum chamado registrado',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: DS.textSecondary),
         ),
       );
     }
@@ -683,11 +665,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: DS.card,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: DS.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -701,7 +684,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: DS.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -722,7 +705,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const Center(
         child: Text(
           'Nenhum chamado registrado',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: DS.textSecondary),
         ),
       );
     }
@@ -780,10 +763,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               getTitlesWidget: (value, meta) {
                 return Text(
                   value.toInt().toString(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: DS.textSecondary),
                 );
               },
             ),
@@ -825,4 +805,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-

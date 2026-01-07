@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 /// Tela de boas-vindas que solicita TODAS as permissões necessárias
 /// ANTES do usuário fazer login (especialmente importante para Xiaomi)
@@ -82,7 +83,7 @@ class _PermissionRequestScreenState extends State<PermissionRequestScreen> {
 
     return Scaffold(
       body: Container(
-        color: isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF5F7FA),
+        color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
         child: const SafeArea(
           child: Center(
             child: Column(

@@ -279,11 +279,11 @@ exports.notificarNovoComentario = functions.firestore
       // Preparar mensagem
       const message = {
         notification: {
-          title: `💬 Novo Comentário - #${String(chamado.numero).padStart(4, '0')}`,
+          title: `💬 Nova Mensagem - #${String(chamado.numero).padStart(4, '0')}`,
           body: `${comentario.usuarioNome}: ${comentario.texto.substring(0, 50)}${comentario.texto.length > 50 ? '...' : ''}`,
         },
         data: {
-          tipo: 'novo_comentario',
+          tipo: 'nova_mensagem',
           chamadoId: comentario.chamadoId,
           numero: String(chamado.numero),
         },

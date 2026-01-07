@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:helpdesk_ti/core/theme/design_system.dart';
+import 'package:helpdesk_ti/core/theme/theme_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/chamado_manutencao_model.dart';
 import '../../models/manutencao_enums.dart';
@@ -175,248 +177,258 @@ class _ManutencaoAdvancedSearchScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     // DS cores usadas diretamente
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Busca Avançada',
-          style: TextStyle(color: DS.textPrimary),
+    return Container(
+      color: isDarkMode ? DS.background : const Color(0xFFF5F7FA),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: Text(
+            'Busca Avançada',
+            style: TextStyle(
+              color: isDarkMode ? DS.textPrimary : Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          elevation: 0,
+          iconTheme: IconThemeData(
+            color: isDarkMode ? DS.textPrimary : Colors.black87,
+          ),
         ),
-        elevation: 0,
-        iconTheme: const IconThemeData(
-          color: DS.textPrimary,
-        ),
-      ),
-      body: Column(
-        children: [
-          // Área de filtros
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Campo de texto livre
-                  TextField(
-                    controller: _textoController,
-                    decoration: InputDecoration(
-                      labelText: 'Buscar por texto',
-                      hintText: 'Título, descrição ou solicitante',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: theme.inputDecorationTheme.fillColor,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Filtro: Status
-                  DropdownButtonFormField<StatusChamadoManutencao>(
-                    initialValue: _statusSelecionado,
-                    decoration: InputDecoration(
-                      labelText: 'Status',
-                      prefixIcon: const Icon(Icons.flag),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: theme.inputDecorationTheme.fillColor,
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Todos os status'),
-                      ),
-                      ...StatusChamadoManutencao.values.map((status) {
-                        return DropdownMenuItem(
-                          value: status,
-                          child: Row(
-                            children: [
-                              Text(status.emoji),
-                              const SizedBox(width: 8),
-                              Text(status.label),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _statusSelecionado = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Filtro: Período
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Período',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _selecionarDataInicio,
-                                  icon: const Icon(Icons.calendar_today),
-                                  label: Text(
-                                    _dataInicio != null
-                                        ? DateFormat(
-                                            'dd/MM/yyyy',
-                                          ).format(_dataInicio!)
-                                        : 'Data Início',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.arrow_forward, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _selecionarDataFim,
-                                  icon: const Icon(Icons.calendar_today),
-                                  label: Text(
-                                    _dataFim != null
-                                        ? DateFormat(
-                                            'dd/MM/yyyy',
-                                          ).format(_dataFim!)
-                                        : 'Data Fim',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Botões de ação
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _limparFiltros,
-                          icon: const Icon(Icons.clear),
-                          label: const Text('Limpar'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
+        body: Column(
+          children: [
+            // Área de filtros
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Campo de texto livre
+                    TextField(
+                      controller: _textoController,
+                      decoration: InputDecoration(
+                        labelText: 'Buscar por texto',
+                        hintText: 'Título, descrição ou solicitante',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        filled: true,
+                        fillColor: theme.inputDecorationTheme.fillColor,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton.icon(
-                          onPressed: _buscando ? null : _realizarBusca,
-                          icon: _buscando
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.search),
-                          label: Text(_buscando ? 'Buscando...' : 'Buscar'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Resultados
-                  if (_buscaRealizada) ...[
-                    const Divider(),
+                    ),
                     const SizedBox(height: 16),
+
+                    // Filtro: Status
+                    DropdownButtonFormField<StatusChamadoManutencao>(
+                      initialValue: _statusSelecionado,
+                      decoration: InputDecoration(
+                        labelText: 'Status',
+                        prefixIcon: const Icon(Icons.flag),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: theme.inputDecorationTheme.fillColor,
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todos os status'),
+                        ),
+                        ...StatusChamadoManutencao.values.map((status) {
+                          return DropdownMenuItem(
+                            value: status,
+                            child: Row(
+                              children: [
+                                Text(status.emoji),
+                                const SizedBox(width: 8),
+                                Text(status.label),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _statusSelecionado = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Filtro: Período
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Período',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _selecionarDataInicio,
+                                    icon: const Icon(Icons.calendar_today),
+                                    label: Text(
+                                      _dataInicio != null
+                                          ? DateFormat(
+                                              'dd/MM/yyyy',
+                                            ).format(_dataInicio!)
+                                          : 'Data Início',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _selecionarDataFim,
+                                    icon: const Icon(Icons.calendar_today),
+                                    label: Text(
+                                      _dataFim != null
+                                          ? DateFormat(
+                                              'dd/MM/yyyy',
+                                            ).format(_dataFim!)
+                                          : 'Data Fim',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Botões de ação
                     Row(
                       children: [
-                        Icon(Icons.list_alt, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_resultados.length} resultado(s) encontrado(s)',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _limparFiltros,
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Limpar'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            onPressed: _buscando ? null : _realizarBusca,
+                            icon: _buscando
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.search),
+                            label: Text(_buscando ? 'Buscando...' : 'Buscar'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ],
-              ),
-            ),
-          ),
+                    const SizedBox(height: 24),
 
-          // Lista de resultados
-          if (_buscaRealizada && _resultados.isNotEmpty)
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _resultados.length,
-                itemBuilder: (context, index) {
-                  final chamado = _resultados[index];
-                  return ManutencaoCard(
-                    chamado: chamado,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ManutencaoDetalhesChamadoScreen(
-                            chamadoId: chamado.id,
+                    // Resultados
+                    if (_buscaRealizada) ...[
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.list_alt,
+                            color: theme.colorScheme.primary,
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-
-          // Mensagem de nenhum resultado
-          if (_buscaRealizada && _resultados.isEmpty)
-            const Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.search_off, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text(
-                      'Nenhum resultado encontrado',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
-                    ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_resultados.length} resultado(s) encontrado(s)',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-        ],
+
+            // Lista de resultados
+            if (_buscaRealizada && _resultados.isNotEmpty)
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _resultados.length,
+                  itemBuilder: (context, index) {
+                    final chamado = _resultados[index];
+                    return ManutencaoCard(
+                      chamado: chamado,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ManutencaoDetalhesChamadoScreen(
+                                  chamadoId: chamado.id,
+                                ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
+            // Mensagem de nenhum resultado
+            if (_buscaRealizada && _resultados.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search_off, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'Nenhum resultado encontrado',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
-
-

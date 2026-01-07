@@ -50,29 +50,39 @@ class _ManutencaoCriarChamadoScreenState
   Future<void> _mostrarOpcoesFoto() async {
     showModalBottomSheet(
       context: context,
+      backgroundColor: DS.card,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: Colors.blue),
-              title: const Text('📷 Tirar Foto'),
+              leading: const Icon(Icons.camera_alt, color: DS.action),
+              title: const Text(
+                '📷 Tirar Foto',
+                style: TextStyle(color: DS.textPrimary),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _adicionarFoto(ImageSource.camera);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Colors.green),
-              title: const Text('🖼️ Escolher da Galeria'),
+              leading: const Icon(Icons.photo_library, color: DS.success),
+              title: const Text(
+                '🖼️ Escolher da Galeria',
+                style: TextStyle(color: DS.textPrimary),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _adicionarFoto(ImageSource.gallery);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.cancel, color: Colors.red),
-              title: const Text('Cancelar'),
+              leading: const Icon(Icons.cancel, color: DS.error),
+              title: const Text(
+                'Cancelar',
+                style: TextStyle(color: DS.textSecondary),
+              ),
               onTap: () => Navigator.pop(context),
             ),
           ],
@@ -99,7 +109,7 @@ class _ManutencaoCriarChamadoScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('✅ Foto adicionada! Total: ${_fotos.length}'),
-              backgroundColor: Colors.green,
+              backgroundColor: DS.success,
             ),
           );
         }
@@ -109,7 +119,7 @@ class _ManutencaoCriarChamadoScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Erro ao capturar foto: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: DS.error,
           ),
         );
       }
@@ -123,7 +133,7 @@ class _ManutencaoCriarChamadoScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🗑️ Foto removida'),
-        backgroundColor: Colors.orange,
+        backgroundColor: DS.warning,
       ),
     );
   }
@@ -145,7 +155,7 @@ class _ManutencaoCriarChamadoScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('✅ Arquivo selecionado: $_nomeArquivo'),
-              backgroundColor: Colors.green,
+              backgroundColor: DS.success,
             ),
           );
         }
@@ -155,7 +165,7 @@ class _ManutencaoCriarChamadoScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Erro ao selecionar arquivo: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: DS.error,
           ),
         );
       }
@@ -246,7 +256,7 @@ class _ManutencaoCriarChamadoScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Chamado criado com sucesso!'),
-            backgroundColor: Colors.green,
+            backgroundColor: DS.success,
           ),
         );
 
@@ -258,7 +268,7 @@ class _ManutencaoCriarChamadoScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Erro ao criar chamado: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: DS.error,
           ),
         );
       }
@@ -282,6 +292,7 @@ class _ManutencaoCriarChamadoScreenState
         ),
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: DS.textPrimary),
+        elevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -296,11 +307,37 @@ class _ManutencaoCriarChamadoScreenState
                     TextFormField(
                       controller: _tituloController,
                       style: const TextStyle(color: DS.textPrimary),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '📝 Título *',
+                        labelStyle: const TextStyle(color: DS.textSecondary),
                         hintText: 'Ex: Reparo no portão principal',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.title),
+                        hintStyle: const TextStyle(color: DS.textTertiary),
+                        filled: true,
+                        fillColor: DS.card,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: DS.action,
+                            width: 2,
+                          ),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.title,
+                          color: DS.textSecondary,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        counterStyle: const TextStyle(color: DS.textTertiary),
                       ),
                       maxLength: ManutencaoConstants.tituloMaxLength,
                       validator: (value) {
@@ -320,12 +357,39 @@ class _ManutencaoCriarChamadoScreenState
                     TextFormField(
                       controller: _descricaoController,
                       style: const TextStyle(color: DS.textPrimary),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '📄 Descrição *',
+                        labelStyle: const TextStyle(color: DS.textSecondary),
                         hintText:
                             'Descreva detalhadamente o trabalho necessário',
-                        border: OutlineInputBorder(),
+                        hintStyle: const TextStyle(color: DS.textTertiary),
+                        filled: true,
+                        fillColor: DS.card,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: DS.action,
+                            width: 2,
+                          ),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.description,
+                          color: DS.textSecondary,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
                         alignLabelWithHint: true,
+                        counterStyle: const TextStyle(color: DS.textTertiary),
                       ),
                       maxLines: 5,
                       maxLength: ManutencaoConstants.descricaoMaxLength,
@@ -385,11 +449,15 @@ class _ManutencaoCriarChamadoScreenState
                     // Seção de Orçamento
                     if (_temOrcamento) ...[
                       const SizedBox(height: 16),
-                      const Divider(thickness: 2),
+                      const Divider(thickness: 2, color: DS.border),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         '📋 Informações do Orçamento',
-                        style: Theme.of(context).textTheme.titleLarge,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: DS.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -449,11 +517,33 @@ class _ManutencaoCriarChamadoScreenState
                       // Valor
                       TextFormField(
                         controller: _valorEstimadoController,
-                        decoration: const InputDecoration(
+                        style: const TextStyle(color: DS.textPrimary),
+                        decoration: InputDecoration(
                           labelText: '💵 Valor Estimado (R\$)',
+                          labelStyle: const TextStyle(color: DS.textSecondary),
                           hintText: '2500.00',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.monetization_on),
+                          hintStyle: const TextStyle(color: DS.textTertiary),
+                          filled: true,
+                          fillColor: DS.card,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: DS.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: DS.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: DS.action,
+                              width: 2,
+                            ),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.monetization_on,
+                            color: DS.textSecondary,
+                          ),
                         ),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -464,11 +554,30 @@ class _ManutencaoCriarChamadoScreenState
                       // Itens
                       TextFormField(
                         controller: _itensController,
-                        decoration: const InputDecoration(
+                        style: const TextStyle(color: DS.textPrimary),
+                        decoration: InputDecoration(
                           labelText: '📦 Lista de Materiais',
+                          labelStyle: const TextStyle(color: DS.textSecondary),
                           hintText:
                               'Um item por linha:\nDobradiça grande\nTinta branca\nPincéis',
-                          border: OutlineInputBorder(),
+                          hintStyle: const TextStyle(color: DS.textTertiary),
+                          filled: true,
+                          fillColor: DS.card,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: DS.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: DS.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: DS.action,
+                              width: 2,
+                            ),
+                          ),
                           alignLabelWithHint: true,
                         ),
                         maxLines: 5,
@@ -489,8 +598,14 @@ class _ManutencaoCriarChamadoScreenState
                           style: TextStyle(fontSize: 16),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: DS.success,
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              DS.buttonRadius,
+                            ),
+                          ),
+                          elevation: 0,
                         ),
                       ),
                     ),
@@ -529,10 +644,7 @@ class _ManutencaoCriarChamadoScreenState
                           color: DS.textPrimary,
                         ),
                       ),
-                      Text(
-                        'Adicione fotos para ilustrar o problema',
-                        style: TextStyle(fontSize: 12, color: DS.textSecondary),
-                      ),
+                      // Texto removido conforme solicitado
                     ],
                   ),
                 ),
@@ -592,13 +704,13 @@ class _ManutencaoCriarChamadoScreenState
                                   onTap: () => _removerFoto(index),
                                   child: Container(
                                     decoration: const BoxDecoration(
-                                      color: Colors.red,
+                                      color: DS.error,
                                       shape: BoxShape.circle,
                                     ),
                                     padding: const EdgeInsets.all(4),
                                     child: const Icon(
                                       Icons.close,
-                                      color: Colors.white,
+                                      color: DS.textPrimary,
                                       size: 16,
                                     ),
                                   ),
