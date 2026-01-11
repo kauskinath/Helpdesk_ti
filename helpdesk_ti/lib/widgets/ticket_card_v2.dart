@@ -7,7 +7,7 @@ import 'package:helpdesk_ti/core/utils/date_formatter.dart';
 /// Layout:
 /// - Fundo #1A1C1E, borda #2C2F33, radius 12px
 /// - Barra de prioridade 3px à esquerda
-/// - Linha 1: ID à esquerda, Status à direita (11px, cinza)
+/// - Linha 1: ID à esquerda, Status + Tempo Aberto à direita (11px, cinza)
 /// - Linha 2: Título (16px, bold, branco)
 /// - Linha 3: Ícone usuário + nome (12px)
 /// - Badge de prioridade no canto superior direito
@@ -19,6 +19,7 @@ class TicketCardV2 extends StatelessWidget {
   final String? usuarioNome;
   final String? setorNome;
   final DateTime? lastUpdated;
+  final DateTime? dataCriacao; // Para calcular tempo aberto
   final int numeroComentarios;
   final bool temAnexos;
   final VoidCallback? onTap;
@@ -32,6 +33,7 @@ class TicketCardV2 extends StatelessWidget {
     this.usuarioNome,
     this.setorNome,
     this.lastUpdated,
+    this.dataCriacao,
     this.numeroComentarios = 0,
     this.temAnexos = false,
     this.onTap,
@@ -68,6 +70,40 @@ class TicketCardV2 extends StatelessWidget {
   String _getTimeAgo() {
     if (lastUpdated == null) return '';
     return DateFormatter.formatRelative(lastUpdated!);
+  }
+
+  /// Calcula e formata o tempo que o chamado está aberto
+  String _getTempoAberto() {
+    if (dataCriacao == null) return '';
+    // Só mostrar tempo aberto se não estiver fechado
+    if (status == 'Fechado' || status == 'Rejeitado') return '';
+
+    final now = DateTime.now();
+    final difference = now.difference(dataCriacao!);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}min aberto';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h aberto';
+    } else {
+      return '${difference.inDays}d aberto';
+    }
+  }
+
+  /// Retorna cor baseada no tempo aberto (para urgência visual)
+  Color _getTempoAbertoColor() {
+    if (dataCriacao == null) return DS.textSecondary;
+
+    final difference = DateTime.now().difference(dataCriacao!);
+
+    if (difference.inHours >= 4) {
+      return const Color(0xFFFF5252); // Vermelho - crítico
+    } else if (difference.inHours >= 2) {
+      return const Color(0xFFFF9800); // Laranja - atenção
+    } else if (difference.inHours >= 1) {
+      return const Color(0xFFFFEB3B); // Amarelo - alerta
+    }
+    return DS.textSecondary; // Normal
   }
 
   @override
@@ -108,7 +144,7 @@ class TicketCardV2 extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Linha 1: ID à esquerda, Status + Prioridade à direita
+                          // Linha 1: ID à esquerda, Status + Tempo Aberto + Prioridade à direita
                           Row(
                             children: [
                               if (numeroFormatado != null)
@@ -122,6 +158,40 @@ class TicketCardV2 extends StatelessWidget {
                                   ),
                                 ),
                               const Spacer(),
+                              // Tempo aberto (se aplicável)
+                              if (_getTempoAberto().isNotEmpty) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getTempoAbertoColor().withAlpha(38),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.access_time,
+                                        size: 10,
+                                        color: _getTempoAbertoColor(),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        _getTempoAberto(),
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: _getTempoAbertoColor(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
                               // Status
                               Text(
                                 status,

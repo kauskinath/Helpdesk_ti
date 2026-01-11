@@ -27,7 +27,7 @@ class _NewTicketFormState extends State<NewTicketForm> {
   final _descricaoController = TextEditingController();
   final _linkController = TextEditingController();
 
-  String _selectedTipo = 'Solicitação';
+  String _selectedTipo = 'Requisição';
   int _prioridadeSelecionada = 2; // Padrão: Média
   final bool _isLoading = false;
   final List<XFile> _selectedImages = []; // Múltiplas imagens
@@ -73,7 +73,7 @@ class _NewTicketFormState extends State<NewTicketForm> {
     'ti': 'TI',
   };
 
-  final List<String> _tiposDisponiveis = ['Solicitação', 'Serviço'];
+  final List<String> _tiposDisponiveis = ['Requisição', 'Serviço'];
 
   @override
   void dispose() {

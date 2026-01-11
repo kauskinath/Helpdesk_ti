@@ -140,6 +140,7 @@ class _FilaTecnicaTabState extends State<FilaTecnicaTab> {
                   usuarioNome: chamado.usuarioNome,
                   setorNome: chamado.setor,
                   lastUpdated: chamado.lastUpdated,
+                  dataCriacao: chamado.dataCriacao,
                   temAnexos: chamado.temAnexos,
                   onTap: () {
                     Navigator.push(

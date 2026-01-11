@@ -82,6 +82,11 @@ class FirestoreService {
   Stream<List<Chamado>> getTodosChamadosStream() =>
       _chamadoService.getTodosChamadosStream();
 
+  /// Stream de todos os chamados incluindo fechados (para Histórico)
+  /// Delegado para: ChamadoService.getTodosChamadosComFechadosStream()
+  Stream<List<Chamado>> getTodosChamadosComFechadosStream() =>
+      _chamadoService.getTodosChamadosComFechadosStream();
+
   /// Stream de chamados por status
   /// Delegado para: ChamadoService.getChamadosPorStatus()
   Stream<List<Chamado>> getChamadosPorStatus(String status) =>

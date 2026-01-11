@@ -17,15 +17,27 @@ class UserHomeScreen extends StatefulWidget {
 class _UserHomeScreenState extends State<UserHomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int _selectedIndex = 0; // Variável de controle local para UI
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Adicionar listener para sincronizar quando o usuário arrasta entre tabs
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      setState(() {
+        _selectedIndex = _tabController.index;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -153,11 +165,16 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setState(() => _tabController.index = 0),
+                        onTap: () {
+                          setState(() {
+                            _selectedIndex = 0;
+                            _tabController.animateTo(0);
+                          });
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            gradient: _tabController.index == 0
+                            gradient: _selectedIndex == 0
                                 ? const LinearGradient(
                                     colors: [
                                       Color(0xFF2196F3),
@@ -167,7 +184,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                     end: Alignment.bottomRight,
                                   )
                                 : null,
-                            color: _tabController.index != 0
+                            color: _selectedIndex != 0
                                 ? Colors.black.withValues(alpha: 0.3)
                                 : null,
                             borderRadius: BorderRadius.circular(12),
@@ -185,7 +202,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                 'TI',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontWeight: _tabController.index == 0
+                                  fontWeight: _selectedIndex == 0
                                       ? FontWeight.bold
                                       : FontWeight.normal,
                                   fontSize: 14,
@@ -199,11 +216,16 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                     const SizedBox(width: 8),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setState(() => _tabController.index = 1),
+                        onTap: () {
+                          setState(() {
+                            _selectedIndex = 1;
+                            _tabController.animateTo(1);
+                          });
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            gradient: _tabController.index == 1
+                            gradient: _selectedIndex == 1
                                 ? const LinearGradient(
                                     colors: [
                                       Color(0xFFFF9800),
@@ -213,7 +235,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                     end: Alignment.bottomRight,
                                   )
                                 : null,
-                            color: _tabController.index != 1
+                            color: _selectedIndex != 1
                                 ? Colors.black.withValues(alpha: 0.3)
                                 : null,
                             borderRadius: BorderRadius.circular(12),
@@ -231,7 +253,7 @@ class _UserHomeScreenState extends State<UserHomeScreen>
                                 'Manutenção',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontWeight: _tabController.index == 1
+                                  fontWeight: _selectedIndex == 1
                                       ? FontWeight.bold
                                       : FontWeight.normal,
                                   fontSize: 14,

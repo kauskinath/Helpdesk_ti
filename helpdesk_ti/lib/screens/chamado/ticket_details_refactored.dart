@@ -6,6 +6,7 @@ import '../../data/firestore_service.dart';
 import 'package:helpdesk_ti/core/services/auth_service.dart';
 import '../../widgets/chamado/comentarios_paginados_widget.dart';
 import '../../widgets/avaliacao/avaliacao_chamado_widget.dart';
+import '../../widgets/avaliacao/avaliacao_view_admin_widget.dart';
 import 'package:helpdesk_ti/core/theme/design_system.dart';
 
 class TicketDetailsRefactored extends StatefulWidget {
@@ -349,14 +350,16 @@ class _TicketDetailsRefactoredState extends State<TicketDetailsRefactored> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Widget de avaliação (apenas para usuário comum em chamados fechados)
-                    if (!isAdmin && widget.chamado.status == 'Fechado')
-                      AvaliacaoChamadoWidget(
-                        chamado: widget.chamado,
-                        onAvaliacaoEnviada: () {
-                          // Pode recarregar a tela se necessário
-                        },
-                      ),
+                    // Widget de avaliação (usuário comum pode avaliar, admin pode visualizar)
+                    if (widget.chamado.status == 'Fechado')
+                      isAdmin
+                          ? AvaliacaoViewAdminWidget(chamado: widget.chamado)
+                          : AvaliacaoChamadoWidget(
+                              chamado: widget.chamado,
+                              onAvaliacaoEnviada: () {
+                                // Pode recarregar a tela se necessário
+                              },
+                            ),
 
                     // Seção de atualizações (sempre visível após aceitar o chamado)
                     if (widget.chamado.status != 'Aberto') ...[

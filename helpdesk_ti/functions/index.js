@@ -627,3 +627,168 @@ exports.deleteChamadoCompletely = functions.https.onCall(async (data, context) =
     );
   }
 });
+
+/**
+ * Atualização automática de prioridade baseada em tempo
+ * Executada a cada 30 minutos via Cloud Scheduler
+ * 
+ * Regras de escalação:
+ * - Chamado aberto há mais de 1 hora: Prioridade mínima = 2 (Média)
+ * - Chamado aberto há mais de 2 horas: Prioridade mínima = 3 (Alta)
+ * - Chamado aberto há mais de 4 horas: Prioridade mínima = 4 (Crítica)
+ */
+exports.atualizarPrioridadeAutomatica = functions.pubsub
+  .schedule('every 30 minutes')
+  .onRun(async (context) => {
+    console.log('⏰ Iniciando atualização automática de prioridade...');
+
+    try {
+      const agora = admin.firestore.Timestamp.now();
+      const agoraMs = agora.toMillis();
+
+      // Buscar chamados abertos ou em andamento
+      const chamadosSnapshot = await db.collection('tickets')
+        .where('status', 'in', ['Aberto', 'Em Andamento'])
+        .get();
+
+      if (chamadosSnapshot.empty) {
+        console.log('✅ Nenhum chamado aberto para processar');
+        return null;
+      }
+
+      let atualizados = 0;
+      const batch = db.batch();
+
+      chamadosSnapshot.forEach(doc => {
+        const chamado = doc.data();
+        const dataCriacao = chamado.dataCriacao?.toMillis() || agoraMs;
+        const diffHoras = (agoraMs - dataCriacao) / (1000 * 60 * 60);
+        const prioridadeAtual = chamado.prioridade || 2;
+        
+        let novaPrioridade = prioridadeAtual;
+
+        // Determinar nova prioridade baseada no tempo
+        if (diffHoras >= 4) {
+          // Mais de 4 horas = mínimo Crítica (4)
+          novaPrioridade = Math.max(prioridadeAtual, 4);
+        } else if (diffHoras >= 2) {
+          // Mais de 2 horas = mínimo Alta (3)
+          novaPrioridade = Math.max(prioridadeAtual, 3);
+        } else if (diffHoras >= 1) {
+          // Mais de 1 hora = mínimo Média (2)
+          novaPrioridade = Math.max(prioridadeAtual, 2);
+        }
+
+        // Atualizar apenas se a prioridade aumentou
+        if (novaPrioridade > prioridadeAtual) {
+          batch.update(doc.ref, {
+            prioridade: novaPrioridade,
+            prioridadeEscaladaAutomaticamente: true,
+            ultimaEscalacao: agora,
+            horasAberto: Math.floor(diffHoras),
+          });
+          atualizados++;
+          console.log(`📈 Chamado ${doc.id}: prioridade ${prioridadeAtual} → ${novaPrioridade} (${Math.floor(diffHoras)}h aberto)`);
+        }
+      });
+
+      if (atualizados > 0) {
+        await batch.commit();
+        console.log(`✅ ${atualizados} chamados tiveram prioridade escalada`);
+      } else {
+        console.log('✅ Nenhum chamado precisou de escalação');
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Erro na atualização automática de prioridade:', error);
+      return null;
+    }
+  });
+
+/**
+ * Atualização de prioridade via chamada HTTP (para testes/manual)
+ * Pode ser chamada manualmente pelo admin
+ */
+exports.atualizarPrioridadeManual = functions.https.onCall(async (data, context) => {
+  // Verificar autenticação
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Usuário não autenticado'
+    );
+  }
+
+  // Verificar se é admin
+  const callerDoc = await db.collection('users').doc(context.auth.uid).get();
+  const callerData = callerDoc.data();
+  
+  if (!callerData || callerData.role !== 'admin') {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Apenas admins podem executar esta função'
+    );
+  }
+
+  console.log('🔄 Iniciando atualização manual de prioridade...');
+
+  try {
+    const agora = admin.firestore.Timestamp.now();
+    const agoraMs = agora.toMillis();
+
+    const chamadosSnapshot = await db.collection('tickets')
+      .where('status', 'in', ['Aberto', 'Em Andamento'])
+      .get();
+
+    if (chamadosSnapshot.empty) {
+      return { success: true, message: 'Nenhum chamado aberto', atualizados: 0 };
+    }
+
+    let atualizados = 0;
+    const batch = db.batch();
+
+    chamadosSnapshot.forEach(doc => {
+      const chamado = doc.data();
+      const dataCriacao = chamado.dataCriacao?.toMillis() || agoraMs;
+      const diffHoras = (agoraMs - dataCriacao) / (1000 * 60 * 60);
+      const prioridadeAtual = chamado.prioridade || 2;
+      
+      let novaPrioridade = prioridadeAtual;
+
+      if (diffHoras >= 4) {
+        novaPrioridade = Math.max(prioridadeAtual, 4);
+      } else if (diffHoras >= 2) {
+        novaPrioridade = Math.max(prioridadeAtual, 3);
+      } else if (diffHoras >= 1) {
+        novaPrioridade = Math.max(prioridadeAtual, 2);
+      }
+
+      if (novaPrioridade > prioridadeAtual) {
+        batch.update(doc.ref, {
+          prioridade: novaPrioridade,
+          prioridadeEscaladaAutomaticamente: true,
+          ultimaEscalacao: agora,
+          horasAberto: Math.floor(diffHoras),
+        });
+        atualizados++;
+      }
+    });
+
+    if (atualizados > 0) {
+      await batch.commit();
+    }
+
+    return { 
+      success: true, 
+      message: `${atualizados} chamados atualizados`,
+      atualizados: atualizados,
+      totalProcessados: chamadosSnapshot.size
+    };
+  } catch (error) {
+    console.error('❌ Erro na atualização manual:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      `Erro ao atualizar prioridades: ${error.message}`
+    );
+  }
+});

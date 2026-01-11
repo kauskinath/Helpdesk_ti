@@ -225,17 +225,79 @@ class ChamadoService {
 
   /// Lista todos os chamados do sistema (para admin/TI)
   ///
-  /// Retorna um Stream com todos os chamados ordenados por data de criação.
-  /// Útil para a Fila Técnica onde admins veem todos os tickets.
+  /// Retorna um Stream com todos os chamados ordenados por prioridade (maior primeiro)
+  /// e depois por data de criação. Chamados fechados/rejeitados aparecem por último.
+  /// Útil para a Fila Técnica onde admins veem todos os tickets ativos.
+  /// Chamados fechados e rejeitados são filtrados (aparecem apenas no Histórico).
   ///
-  /// Returns: Stream de lista completa de chamados
+  /// Returns: Stream de lista de chamados ativos (não fechados/rejeitados)
   Stream<List<Chamado>> getTodosChamadosStream() {
     return _firestore.collection('tickets').snapshots().map((snapshot) {
       final chamados = snapshot.docs.map((doc) {
         return Chamado.fromMap(doc.data(), doc.id);
       }).toList();
 
-      chamados.sort((a, b) => b.dataCriacao.compareTo(a.dataCriacao));
+      // Filtrar chamados fechados e rejeitados (esses vão para o Histórico)
+      final chamadosAtivos = chamados
+          .where((c) => c.status != 'Fechado' && c.status != 'Rejeitado')
+          .toList();
+
+      // Ordenar por:
+      // 1. Status (Abertos primeiro, depois Em Andamento, etc)
+      // 2. Prioridade (maior primeiro - 4 = Crítica, 1 = Baixa)
+      // 3. Data de criação (mais antigos primeiro para evitar esquecimento)
+      chamadosAtivos.sort((a, b) {
+        // Definir peso do status (quanto menor, mais prioritário)
+        int pesoStatus(String status) {
+          switch (status) {
+            case 'Aberto':
+              return 0;
+            case 'Em Andamento':
+              return 1;
+            case 'Aguardando':
+              return 2;
+            case 'Pendente Aprovação':
+              return 3;
+            default:
+              return 5;
+          }
+        }
+
+        final statusCompare = pesoStatus(
+          a.status,
+        ).compareTo(pesoStatus(b.status));
+        if (statusCompare != 0) return statusCompare;
+
+        // Mesma categoria de status: ordenar por prioridade (maior primeiro)
+        final prioridadeCompare = b.prioridade.compareTo(a.prioridade);
+        if (prioridadeCompare != 0) return prioridadeCompare;
+
+        // Mesma prioridade: ordenar por data de criação (mais antigo primeiro)
+        return a.dataCriacao.compareTo(b.dataCriacao);
+      });
+
+      return chamadosAtivos;
+    });
+  }
+
+  /// Lista TODOS os chamados do sistema (incluindo fechados e rejeitados)
+  ///
+  /// Útil para o Histórico onde admins veem todos os chamados, inclusive fechados.
+  ///
+  /// Returns: Stream de lista completa de chamados
+  Stream<List<Chamado>> getTodosChamadosComFechadosStream() {
+    return _firestore.collection('tickets').snapshots().map((snapshot) {
+      final chamados = snapshot.docs.map((doc) {
+        return Chamado.fromMap(doc.data(), doc.id);
+      }).toList();
+
+      // Ordenar por data de fechamento/criação (mais recentes primeiro)
+      chamados.sort((a, b) {
+        final dataA = a.dataFechamento ?? a.dataCriacao;
+        final dataB = b.dataFechamento ?? b.dataCriacao;
+        return dataB.compareTo(dataA);
+      });
+
       return chamados;
     });
   }

@@ -132,6 +132,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                           ),
+                          // Estatísticas
+                          const PopupMenuItem(
+                            value: 'estatisticas',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.bar_chart,
+                                  size: 20,
+                                  color: DS.action,
+                                ),
+                                SizedBox(width: 12),
+                                Text('Estatísticas'),
+                              ],
+                            ),
+                          ),
                           const PopupMenuDivider(),
                           // Meu Perfil
                           const PopupMenuItem(
@@ -173,8 +188,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     // Admin TI: Fila Técnica primeiro
                     if (showFilaTecnicaTab) const FilaTecnicaTab(),
-                    // Estatísticas ao lado da Fila Técnica
-                    if (showFilaTecnicaTab) const DashboardScreen(),
+                    // Histórico de Chamados ao lado da Fila Técnica
+                    if (showFilaTecnicaTab)
+                      HistoricoChamadosScreen(
+                        firestoreService: context.read<FirestoreService>(),
+                        authService: context.read<AuthService>(),
+                      ),
                     if (showMeusChamados && !showFilaTecnicaTab)
                       const MeusChamadosTab(),
                     if (showAprovarSolicitacoesTab)
@@ -217,11 +236,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icon(Icons.engineering),
                   label: 'Fila Técnica',
                 ),
-              // Estatísticas ao lado da Fila Técnica
+              // Histórico de Chamados ao lado da Fila Técnica
               if (showFilaTecnicaTab)
                 const BottomNavigationBarItem(
-                  icon: Icon(Icons.bar_chart),
-                  label: 'Estatísticas',
+                  icon: Icon(Icons.history),
+                  label: 'Histórico',
                 ),
               if (showMeusChamados && !showFilaTecnicaTab)
                 const BottomNavigationBarItem(

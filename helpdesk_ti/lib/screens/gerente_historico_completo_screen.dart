@@ -32,7 +32,7 @@ class _GerenteHistoricoCompletoScreenState
   Stream<List<Chamado>> _getChamadosFechados() {
     final firestoreService = context.read<FirestoreService>();
 
-    return firestoreService.getTodosChamadosStream().map((chamados) {
+    return firestoreService.getTodosChamadosComFechadosStream().map((chamados) {
       // Filtrar apenas chamados FECHADOS (status: Fechado)
       var filtrados = chamados.where((c) => c.status == 'Fechado').toList();
 

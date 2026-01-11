@@ -328,11 +328,33 @@ class _ManutencaoCriarChamadoAdminScreenState
                         fontFamily: 'Inter',
                         color: DS.textPrimary,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '📝 Título *',
+                        labelStyle: const TextStyle(color: DS.textSecondary),
                         hintText: 'Ex: Reparo no portão principal',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.title),
+                        hintStyle: const TextStyle(color: DS.textTertiary),
+                        filled: true,
+                        fillColor: DS.card,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: DS.action,
+                            width: 2,
+                          ),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.title,
+                          color: DS.textSecondary,
+                        ),
+                        counterStyle: const TextStyle(color: DS.textTertiary),
                       ),
                       maxLength: ManutencaoConstants.tituloMaxLength,
                       validator: (value) {
@@ -355,12 +377,35 @@ class _ManutencaoCriarChamadoAdminScreenState
                         fontFamily: 'Inter',
                         color: DS.textPrimary,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '📄 Descrição *',
+                        labelStyle: const TextStyle(color: DS.textSecondary),
                         hintText:
                             'Descreva detalhadamente o trabalho necessário',
-                        border: OutlineInputBorder(),
+                        hintStyle: const TextStyle(color: DS.textTertiary),
+                        filled: true,
+                        fillColor: DS.card,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DS.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: DS.action,
+                            width: 2,
+                          ),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.description,
+                          color: DS.textSecondary,
+                        ),
                         alignLabelWithHint: true,
+                        counterStyle: const TextStyle(color: DS.textTertiary),
                       ),
                       maxLines: 5,
                       maxLength: ManutencaoConstants.descricaoMaxLength,

@@ -239,7 +239,9 @@ class _HistoricoChamadosScreenState extends State<HistoricoChamadosScreen> {
     if (widget.authService.isAdmin || widget.authService.userRole == 'ti') {
       // Admin/TI: Ver todos os chamados fechados
       if (dataInicio != null) {
-        return widget.firestoreService.getTodosChamadosStream().map((chamados) {
+        return widget.firestoreService.getTodosChamadosComFechadosStream().map((
+          chamados,
+        ) {
           return chamados.where((c) {
             final isFechado = c.status == 'Fechado' || c.status == 'Rejeitado';
             final dataFechamento = c.dataFechamento ?? c.dataCriacao;
@@ -251,7 +253,9 @@ class _HistoricoChamadosScreenState extends State<HistoricoChamadosScreen> {
           );
         });
       } else {
-        return widget.firestoreService.getTodosChamadosStream().map((chamados) {
+        return widget.firestoreService.getTodosChamadosComFechadosStream().map((
+          chamados,
+        ) {
           return chamados
               .where((c) => c.status == 'Fechado' || c.status == 'Rejeitado')
               .toList()
